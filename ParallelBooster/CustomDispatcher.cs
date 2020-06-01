@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace ModsPerformance
+namespace ParallelBooster
 {
     public class CustomDispatcher
     {
-        private Action[] Actions { get; }
+        private Action[] Actions { get; } = new Action[100000];
         private int Count { get; set; }
         private int Start { get; set; }
         public bool IsDone
@@ -22,9 +22,8 @@ namespace ModsPerformance
         }
         private object Lock { get; } = new object();
 
-        public CustomDispatcher(int capacity = 100000)
+        public CustomDispatcher()
         {
-            Actions = new Action[capacity];
             Clear();
         }
 
