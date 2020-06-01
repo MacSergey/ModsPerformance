@@ -7,28 +7,58 @@ namespace ModsPerformance
 {
     public class CustomDispatcher
     {
-        private List<Action> Actions { get; } = new List<Action>();
+        private Action[] Actions { get; } = new Action[100000];
+        private int Count { get; set; }
+        private int Start { get; set; }
+        public bool IsDone
+        {
+            get
+            {
+                lock(Lock)
+                {
+                    return Start == Count;
+                }
+            }
+        }
         private object Lock { get; } = new object();
+
+        public CustomDispatcher()
+        {
+            Clear();
+        }
+
         public void Add(Action action)
         {
             if (action == null)
                 return;
 
+            int index;
             lock(Lock)
             {
-                Actions.Add(action);
+                index = Count;
+                Count += 1;
             }
+
+            Actions[index] = action;
         }
         public void Execute()
         {
+            int currentCount;
             lock(Lock)
             {
-                foreach(var action in Actions)
-                {
-                    action.Invoke();
-                }
-                Actions.Clear();
+                currentCount = Count;
             }
+
+            for (int i = Start; i < currentCount; i += 1)
+            {
+                Actions[i]?.Invoke();
+            }
+            Start = currentCount;
+        }
+        public void Clear()
+        {
+            Count = 0;
+            Start = 0;
         }
     }
 }

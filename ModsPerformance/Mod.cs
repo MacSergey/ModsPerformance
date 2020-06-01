@@ -23,6 +23,11 @@ namespace ModsPerformance
 
         public string Description => "Mods performance";
 
+        //public Mod()
+        //{
+        //    Harmony.DEBUG = true;
+        //}
+
         public void OnEnabled()
         {
             Patcher.Patch();
@@ -60,25 +65,25 @@ namespace ModsPerformance
         {
             Debug($"Start tracking");
 
-            Methods = FindMethods();
+            //Methods = FindMethods();
 
             var harmony = new Harmony(HarmonyId);
             var prefix = new HarmonyMethod(AccessTools.Method(typeof(Patcher), nameof(Patcher.Prefix)));
             var postfix = new HarmonyMethod(AccessTools.Method(typeof(Patcher), nameof(Patcher.Postfix)));
 
-            foreach (var method in Methods)
-            {
-                try
-                {
-                    harmony.Patch(method, prefix, postfix);
-                    Debug($"Start tracking: {method.GetString()}");
-                    Performance.Add(method, new List<long>());
-                }
-                catch (Exception error)
-                {
-                    Debug($"Start tracking falled: {method.GetString()}\n{error.Message}\n{error.StackTrace}");
-                }
-            }
+            //foreach (var method in Methods)
+            //{
+            //    try
+            //    {
+            //        harmony.Patch(method, prefix, postfix);
+            //        Debug($"Start tracking: {method.GetString()}");
+            //        Performance.Add(method, new List<long>());
+            //    }
+            //    catch (Exception error)
+            //    {
+            //        Debug($"Start tracking falled: {method.GetString()}\n{error.Message}\n{error.StackTrace}");
+            //    }
+            //}
 
             harmony.Patch(AccessTools.Method(typeof(RenderManager), "LateUpdate"), new HarmonyMethod(AccessTools.Method(typeof(Patcher), nameof(Patcher.RenderManagerLateUpdatePrefix))));
             Debug($"RenderManager.LateUpdate patched");
@@ -86,18 +91,38 @@ namespace ModsPerformance
             harmony.Patch(AccessTools.Method(typeof(NetManager), "EndRenderingImpl"), new HarmonyMethod(AccessTools.Method(typeof(Patcher), nameof(Patcher.EndRenderingImplPrefix))));
             Debug($"NetManager.EndRenderingImpl patched");
 
-            //harmony.Patch(AccessTools.Method(typeof(NetNode), "RenderInstance", new Type[] { typeof(RenderManager.CameraInfo), typeof(ushort), typeof(NetInfo), typeof(int), typeof(NetNode.Flags), typeof(uint).MakeByRefType(), typeof(RenderManager.Instance).MakeByRefType() }), new HarmonyMethod(AccessTools.Method(typeof(Patcher), nameof(Patcher.NetNodeRenderInstancePatch2))));
-            //Debug($"NetNode.RenderInstance patched");
-
-            harmony.Patch(AccessTools.Method(typeof(NetNode), "RenderInstance", new Type[] { typeof(RenderManager.CameraInfo), typeof(ushort), typeof(int) }), new HarmonyMethod(AccessTools.Method(typeof(Patcher), nameof(Patcher.NetNodeRenderInstancePatch1))));
-            Debug($"NetNode.RenderInstance patched");
-
-            ReportTimer = new Timer(ReportInterval)
+            if (UsePatch)
             {
-                AutoReset = true
-            };
-            ReportTimer.Elapsed += Report;
-            ReportTimer.Start();
+                RefreshJunctionDataMethod = AccessTools.Method(typeof(NetNode), "RefreshJunctionData", new Type[] { typeof(ushort), typeof(NetInfo), typeof(uint) });
+                RefreshBendDataMethod = AccessTools.Method(typeof(NetNode), "RefreshBendData");
+                RefreshEndDataMethod = AccessTools.Method(typeof(NetNode), "RefreshEndData");
+
+                Debug($"{nameof(RefreshJunctionDataMethod)}={RefreshJunctionDataMethod != null}");
+                Debug($"{nameof(RefreshBendDataMethod)}={RefreshBendDataMethod != null}");
+                Debug($"{nameof(RefreshEndDataMethod)}={RefreshEndDataMethod != null}");
+
+                //harmony.Patch(AccessTools.Method(typeof(NetNode), nameof(NetNode.RenderInstance), new Type[] { typeof(CameraInfo), typeof(ushort), typeof(int) }), new HarmonyMethod(AccessTools.Method(typeof(Patcher), nameof(Patcher.NetNodePublicRenderInstancePatch))));
+                //Debug($"NetNode.RenderInstance patched");
+
+                harmony.Patch(AccessTools.Method(typeof(NetNode), nameof(NetNode.RenderInstance), new Type[] { typeof(CameraInfo), typeof(ushort), typeof(int) }), new HarmonyMethod(AccessTools.Method(typeof(Patcher), nameof(Patcher.NetNodePublicRenderInstancePrefix))));
+                Debug($"NetNode.RenderInstance prefix");
+
+                harmony.Patch(AccessTools.Method(typeof(NetNode), nameof(NetNode.RenderInstance), new Type[] { typeof(CameraInfo), typeof(ushort), typeof(NetInfo), typeof(int), typeof(NetNode.Flags), typeof(uint).MakeByRefType(), typeof(Instance).MakeByRefType() }), new HarmonyMethod(AccessTools.Method(typeof(Patcher), nameof(Patcher.NetNodePrivateRenderInstancePatch))));
+                Debug($"NetNode.RenderInstance patched");
+
+                //harmony.Patch(AccessTools.Method(typeof(NetSegment), nameof(NetSegment.RenderInstance), new Type[] { typeof(RenderManager.CameraInfo), typeof(ushort), typeof(int) }), new HarmonyMethod(AccessTools.Method(typeof(Patcher), nameof(Patcher.NetSegmentPublicRenderInstancePatch))));
+                //Debug($"NetSegment.RenderInstance patched");
+
+                harmony.Patch(AccessTools.Method(typeof(NetSegment), nameof(NetSegment.RenderInstance), new Type[] { typeof(CameraInfo), typeof(ushort), typeof(int), typeof(NetInfo), typeof(Instance).MakeByRefType() }), new HarmonyMethod(AccessTools.Method(typeof(Patcher), nameof(Patcher.NetSegmentPrivareRenderInstancePatch))));
+                Debug($"NetSegment.RenderInstance patched");
+            }
+
+            //ReportTimer = new Timer(ReportInterval)
+            //{
+            //    AutoReset = true
+            //};
+            //ReportTimer.Elapsed += Report;
+            //ReportTimer.Start();
         }
 
         private static void Report(object sender, ElapsedEventArgs e)
@@ -168,8 +193,6 @@ namespace ModsPerformance
 
             return methods;
         }
-
-
 
 
         private static void Debug(string message) => Log(UnityEngine.Debug.Log, message);
