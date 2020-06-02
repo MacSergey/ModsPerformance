@@ -80,7 +80,7 @@ namespace ParallelBooster.Patches
                 };
 
                 var newInstructions = instructions.ReplaceFor(1, replaceInstructions).ToList();
-#if Debug
+#if Debug && IL
                 Logger.Debug(nameof(NetManagerPatch), nameof(EndRenderingImplPatch), newInstructions);
 #endif
                 return newInstructions;
@@ -99,7 +99,7 @@ namespace ParallelBooster.Patches
                     newInstructions.Add(new CodeInstruction(OpCodes.Stloc_0));
                     newInstructions.AddRange(instructions.GetFor(1));
                     newInstructions.Add(new CodeInstruction(OpCodes.Ret));
-#if Debug
+#if Debug && IL
                     Logger.Debug(nameof(NetManagerPatch), nameof(EndRenderingImplExtractedDummy), newInstructions);
 #endif
                     return newInstructions;
@@ -145,7 +145,7 @@ namespace ParallelBooster.Patches
                 };
 
                 var newInstructions = instructions.ReplaceFor(39, replaceInstructions).ToList();
-#if Debug
+#if Debug && IL
                 Logger.Debug(nameof(NetSegmentPatch), nameof(RenderInstancePatch), newInstructions);
 #endif
                 return newInstructions;
@@ -163,7 +163,7 @@ namespace ParallelBooster.Patches
                     var newInstructions = new List<CodeInstruction>();
                     newInstructions.AddRange(instructions.GetFor(39));
                     newInstructions.Add(new CodeInstruction(OpCodes.Ret));
-#if Debug
+#if Debug && IL
                     Logger.Debug(nameof(NetSegmentPatch), nameof(RenderInstanceExtractedDummy), newInstructions);
 #endif
                     return newInstructions;
