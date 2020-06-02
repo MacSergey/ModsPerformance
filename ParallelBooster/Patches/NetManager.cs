@@ -4,183 +4,173 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 using System.Reflection.Emit;
 using System.Text;
 using System.Threading;
+using UnityEngine;
 using static RenderManager;
 
 namespace ParallelBooster.Patches
 {
-    public static class NetManagerPatch
+    public static class NetManagerRenderPatch
     {
         private static CustomDispatcher CustomDispatcher { get; } = new CustomDispatcher();
 
         public static void Patch(Harmony harmony)
         {
-            var originalMethod = AccessTools.Method(typeof(NetManager), "EndRenderingImpl");
-            var extractedMethod = AccessTools.Method(typeof(NetManagerPatch), nameof(NetManagerPatch.EndRenderingImplExtractedDummy));
-
-            var reversePatcher = harmony.CreateReversePatcher(originalMethod, new HarmonyMethod(extractedMethod));
-            reversePatcher.Patch();
-            Logger.Debug($"Created reverse patch NetManagerPatch.EndRenderingImplExtractedDummy");
-
-            var transpilerMethod = AccessTools.Method(typeof(NetManagerPatch), nameof(NetManagerPatch.EndRenderingImplPatch));
-            harmony.Patch(originalMethod, transpiler: new HarmonyMethod(transpilerMethod));
-            Logger.Debug($"Patched NetManager.EndRenderingImpl");
+            NetManagerPatch.Patch(harmony);
+            NetSegmentPatch.Patch(harmony);
         }
 
-        #region NetManager.EndRenderingImpl
-
-#if Debug
-        [HarmonyDebug]
-#endif
-        private static IEnumerable<CodeInstruction> EndRenderingImplPatch(IEnumerable<CodeInstruction> instructions)
+        public static class NetManagerPatch
         {
-            var replaceInstructions = new CodeInstruction[]
+            public static void Patch(Harmony harmony)
             {
-                new CodeInstruction(OpCodes.Ldarg_0),
-                new CodeInstruction(OpCodes.Ldarg_1),
-                new CodeInstruction(OpCodes.Ldloc_0),
-                new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(NetManagerPatch), nameof(NetManagerPatch.RenderGroups))),
-            };
+                var originalMethod = AccessTools.Method(typeof(NetManager), "EndRenderingImpl");
+                var extractedMethod = AccessTools.Method(typeof(NetManagerPatch), nameof(NetManagerPatch.EndRenderingImplExtractedDummy));
+                var transpilerMethod = AccessTools.Method(typeof(NetManagerPatch), nameof(NetManagerPatch.EndRenderingImplPatch));
 
-            return instructions.ReplaceFor(1, new CodeInstruction(OpCodes.Ldarg_0), replaceInstructions);
-            //var instructionsEnumerator = instructions.GetEnumerator();
-            //var startLoopFinded = false;
-            //var endLoopLable = (Label)default;
-            //CodeInstruction instruction;
+                Patcher.Patch(harmony, originalMethod, extractedMethod, transpilerMethod);
+            }
 
-            //while (instructionsEnumerator.MoveNext())
-            //{
-            //    instruction = instructionsEnumerator.Current;
-
-            //    if (startLoopFinded)
-            //    {
-            //        endLoopLable = (Label)instruction.operand;
-            //        break;
-            //    }
-
-            //    yield return instruction;
-
-            //    if (instruction.opcode == OpCodes.Stloc_1)
-            //        startLoopFinded = true;
-            //}
-
-            //yield return new CodeInstruction(OpCodes.Ldarg_0);
-            //yield return new CodeInstruction(OpCodes.Ldarg_1);
-            //yield return new CodeInstruction(OpCodes.Ldloc_0);
-            //yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(NetManagerPatch), nameof(NetManagerPatch.RenderGroups)));
-
-            //var loopСonditionFinded = false;
-            //var endLoopFinded = false;
-            //while(instructionsEnumerator.MoveNext())
-            //{
-            //    instruction = instructionsEnumerator.Current;
-
-            //    if (!endLoopFinded)
-            //    {
-            //        if (!loopСonditionFinded)
-            //        {
-            //            if (instruction.labels.Contains(endLoopLable))
-            //                loopСonditionFinded = true;
-            //            continue;
-            //        }
-            //        else if (instruction.opcode != OpCodes.Ldarg_0)
-            //            continue;
-            //        else
-            //            endLoopFinded = true;
-            //    }
-
-            //    yield return instruction;
-            //}
-        }
-
-        private static void RenderGroups(NetManager instance, CameraInfo cameraInfo, FastList<RenderGroup> renderedGroups)
-        {
-#if Debug
-            Logger.Debug($"Start. {nameof(renderedGroups)}={renderedGroups.m_size} (thread={Thread.CurrentThread.ManagedThreadId})");
-            var sw = Stopwatch.StartNew();
-            var dipsSw = new Stopwatch();
-#endif
-
-            CustomDispatcher.Clear();
-
-            var task = Task.Create(() => EndRenderingImplExtractedDummy(instance, cameraInfo, renderedGroups));
-            task.Run();
-
-
-            while (!task.hasEnded || !CustomDispatcher.IsDone)
+            public static void RenderGroups(NetManager instance, CameraInfo cameraInfo, FastList<RenderGroup> renderedGroups)
             {
 #if Debug
-                dipsSw.Start();
+                Logger.Debug($"Start. {nameof(renderedGroups)}={renderedGroups.m_size} (thread={Thread.CurrentThread.ManagedThreadId})");
+                var sw = Stopwatch.StartNew();
+                var dipsSw = new Stopwatch();
 #endif
-                CustomDispatcher.Execute();
+
+                CustomDispatcher.Clear();
+
+                var task = Task.Create(() => EndRenderingImplExtractedDummy(instance, cameraInfo, renderedGroups));
+                task.Run();
+
+
+                while (!task.hasEnded || !CustomDispatcher.IsDone)
+                {
 #if Debug
-                dipsSw.Stop();
+                    dipsSw.Start();
+#endif
+                    CustomDispatcher.Execute();
+#if Debug
+                    dipsSw.Stop();
+#endif
+                }
+
+#if Debug
+                sw.Stop();
+                Logger.Debug($"Dispatcher duration {dipsSw.ElapsedTicks}");
+                Logger.Debug($"End {sw.ElapsedTicks}");
 #endif
             }
 
 #if Debug
-            sw.Stop();
-            Logger.Debug($"Dispatcher duration {dipsSw.ElapsedTicks}");
-            Logger.Debug($"End {sw.ElapsedTicks}");
+            [HarmonyDebug]
 #endif
-        }
-
-#if Debug
-        [HarmonyDebug]
-#endif
-        private static void EndRenderingImplExtractedDummy(NetManager instance, CameraInfo cameraInfo, FastList<RenderGroup> renderedGroups)
-        {
-            IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+            private static IEnumerable<CodeInstruction> EndRenderingImplPatch(IEnumerable<CodeInstruction> instructions)
             {
-                yield return new CodeInstruction(OpCodes.Ldarg_2);
-                yield return new CodeInstruction(OpCodes.Stloc_0);
+                var replaceInstructions = new CodeInstruction[]
+                {
+                    new CodeInstruction(OpCodes.Ldarg_0),
+                    new CodeInstruction(OpCodes.Ldarg_1),
+                    new CodeInstruction(OpCodes.Ldloc_0),
+                    new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(NetManagerPatch), nameof(NetManagerPatch.RenderGroups))),
+                };
 
-                foreach (var instruction in instructions.GetFor(1, new CodeInstruction(OpCodes.Ldarg_0)))
-                    yield return instruction;
-                //var instructionsEnumerator = instructions.GetEnumerator();
-                //CodeInstruction instruction;
-
-                //for (var prevInstruction = (CodeInstruction)null; instructionsEnumerator.MoveNext(); prevInstruction = instructionsEnumerator.Current)
-                //{
-                //    instruction = instructionsEnumerator.Current;
-
-                //    if(instruction.opcode == OpCodes.Stloc_1)
-                //    {
-                //        Logger.Debug(prevInstruction.ToString());
-                //        yield return prevInstruction;
-                //        Logger.Debug(instruction.ToString());
-                //        yield return instruction;
-                //        break;
-                //    }
-                //}
-
-                //instructionsEnumerator.MoveNext();
-                //instruction = instructionsEnumerator.Current;
-                //Logger.Debug(instruction.ToString());
-                //yield return instruction;               
-                //var endLoopLable = (Label)instruction.operand;
-
-                //var loopСonditionFinded = false;
-                //while (instructionsEnumerator.MoveNext())
-                //{
-                //    instruction = instructionsEnumerator.Current;
-                //    if (!loopСonditionFinded)
-                //        loopСonditionFinded = instruction.labels.Contains(endLoopLable);
-                //    else if (instruction.opcode == OpCodes.Ldarg_0)
-                //        break;
-
-                //    Logger.Debug(instruction.ToString());
-                //    yield return instruction;
-                //}
-
-                yield return new CodeInstruction(OpCodes.Ret);
+                var newInstructions = instructions.ReplaceFor(1, replaceInstructions).ToList();
+#if Debug
+                Logger.Debug(nameof(NetManagerPatch), nameof(EndRenderingImplPatch), newInstructions);
+#endif
+                return newInstructions;
             }
 
-            _ = Transpiler(null);
+#if Debug
+            [HarmonyDebug]
+#endif
+            private static void EndRenderingImplExtractedDummy(NetManager instance, CameraInfo cameraInfo, FastList<RenderGroup> renderedGroups)
+            {
+                IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+                {
+                    var newInstructions = new List<CodeInstruction>();
+
+                    newInstructions.Add(new CodeInstruction(OpCodes.Ldarg_2));
+                    newInstructions.Add(new CodeInstruction(OpCodes.Stloc_0));
+                    newInstructions.AddRange(instructions.GetFor(1));
+                    newInstructions.Add(new CodeInstruction(OpCodes.Ret));
+#if Debug
+                    Logger.Debug(nameof(NetManagerPatch), nameof(EndRenderingImplExtractedDummy), newInstructions);
+#endif
+                    return newInstructions;
+                }
+
+                _ = Transpiler(null);
+            }
         }
 
-        #endregion;
+        public static class NetSegmentPatch
+        {
+            public static void Patch(Harmony harmony)
+            {
+                var originalMethod = AccessTools.Method(typeof(NetSegment), "RenderInstance", new Type[] { typeof(CameraInfo), typeof(ushort), typeof(int), typeof(NetInfo), typeof(Instance).MakeByRefType() });
+                var extractedMethod = AccessTools.Method(typeof(NetSegmentPatch), nameof(NetSegmentPatch.RenderInstanceExtractedDummy));
+                var transpilerMethod = AccessTools.Method(typeof(NetSegmentPatch), nameof(NetSegmentPatch.RenderInstancePatch));
+
+                Patcher.Patch(harmony, originalMethod, extractedMethod, transpilerMethod);
+            }
+
+            public static void AddToDispatcher(NetSegment instance, CameraInfo cameraInfo, ushort segmentID, int layerMask, NetInfo info, Instance data)
+            {
+                var action = new Action(() => RenderInstanceExtractedDummy(instance, cameraInfo, segmentID, layerMask, info, ref data));
+                CustomDispatcher.Add(action);
+            }
+
+#if Debug
+            [HarmonyDebug]
+#endif
+            private static IEnumerable<CodeInstruction> RenderInstancePatch(IEnumerable<CodeInstruction> instructions)
+            {
+                var replaceInstructions = new CodeInstruction[]
+                {
+                    new CodeInstruction(OpCodes.Ldarg_S, 0),
+                    new CodeInstruction(OpCodes.Ldobj, typeof(NetSegment)),
+                    new CodeInstruction(OpCodes.Ldarg_S, 1),
+                    new CodeInstruction(OpCodes.Ldarg_S, 2),
+                    new CodeInstruction(OpCodes.Ldarg_S, 3),
+                    new CodeInstruction(OpCodes.Ldarg_S, 4),
+                    new CodeInstruction(OpCodes.Ldarg_S, 5),
+                    new CodeInstruction(OpCodes.Ldobj, typeof(Instance)),
+                    new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(NetSegmentPatch), nameof(NetSegmentPatch.AddToDispatcher))),
+                };
+
+                var newInstructions = instructions.ReplaceFor(39, replaceInstructions).ToList();
+#if Debug
+                Logger.Debug(nameof(NetSegmentPatch), nameof(RenderInstancePatch), newInstructions);
+#endif
+                return newInstructions;
+            }
+
+#if Debug
+            [HarmonyDebug]
+#endif
+            private static void RenderInstanceExtractedDummy(NetSegment instance, CameraInfo cameraInfo, ushort segmentID, int layerMask, NetInfo info, ref Instance data)
+            {
+                IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+                {
+                    Logger.Debug(nameof(NetSegmentPatch), nameof(RenderInstanceExtractedDummy), instructions);
+
+                    var newInstructions = new List<CodeInstruction>();
+                    newInstructions.AddRange(instructions.GetFor(39));
+                    newInstructions.Add(new CodeInstruction(OpCodes.Ret));
+#if Debug
+                    Logger.Debug(nameof(NetSegmentPatch), nameof(RenderInstanceExtractedDummy), newInstructions);
+#endif
+                    return newInstructions;
+                }
+
+                _ = Transpiler(null);
+            }
+        }
     }
 }
