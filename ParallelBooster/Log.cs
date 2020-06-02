@@ -13,11 +13,7 @@ namespace ParallelBooster
         public static void Debug(string message) => Log(UnityEngine.Debug.Log, message);
         public static void Debug(string typeName, string methodName, IEnumerable<CodeInstruction> instructions) => Debug($"{typeName}.{methodName}{string.Join("", instructions.Select(i => $"\n\t{i}").ToArray())}");
         public static void Error(string message) => Log(UnityEngine.Debug.LogError, message);
+        public static void Error(Exception error) => Error($"\n{error.Message}\n{error.StackTrace}");
         private static void Log(Action<string> logAction, string message) => logAction($"[{Source}] {message}");
-
-        internal static void Error(Exception error)
-        {
-            throw new NotImplementedException();
-        }
     }
 }

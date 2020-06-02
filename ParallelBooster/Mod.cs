@@ -17,5 +17,9 @@ namespace ParallelBooster
         {
             Patcher.Patch();
         }
+        public void F()
+        {
+
+        }
     }
 }
