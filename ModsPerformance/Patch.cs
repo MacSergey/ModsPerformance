@@ -1303,6 +1303,33 @@ namespace ModsPerformance
             }
         }
 
+        private static void NetSegmentRenderMainThread2(NetSegment __instance, RenderManager.CameraInfo cameraInfo, ushort segmentID, int layerMask, NetInfo info, ref RenderManager.Instance data, NetManager instance, NetNode.Flags flags3, NetNode.Flags flags4, Color color3, Color color4, float startAngle2, float endAngle2, bool invert2, Vector4 objectIndex, Vector4 objectIndex2)
+        {
+            int propIndex2 = (info.m_segments != null && info.m_segments.Length != 0) ? (-1) : 0;
+            uint num2 = __instance.m_lanes;
+            if ((__instance.m_flags & NetSegment.Flags.Collapsed) != 0)
+            {
+                for (int k = 0; k < info.m_lanes.Length; k++)
+                {
+                    if (num2 == 0)
+                    {
+                        break;
+                    }
+                    instance.m_lanes.m_buffer[num2].RenderDestroyedInstance(cameraInfo, segmentID, num2, info, info.m_lanes[k], flags3, flags4, color3, color4, startAngle2, endAngle2, invert2, layerMask, objectIndex, objectIndex2, ref data, ref propIndex2);
+                    num2 = instance.m_lanes.m_buffer[num2].m_nextLane;
+                }
+                return;
+            }
+            for (int l = 0; l < info.m_lanes.Length; l++)
+            {
+                if (num2 == 0)
+                {
+                    break;
+                }
+                instance.m_lanes.m_buffer[num2].RenderInstance(cameraInfo, segmentID, num2, info.m_lanes[l], flags3, flags4, color3, color4, startAngle2, endAngle2, invert2, layerMask, objectIndex, objectIndex2, ref data, ref propIndex2);
+                num2 = instance.m_lanes.m_buffer[num2].m_nextLane;
+            }
+        }
         #endregion
     }
 }

@@ -108,16 +108,20 @@ namespace ParallelBooster
         public static bool Is(this CodeInstruction inst, CodeInstruction other) => other.operand == null ? inst.opcode == other.opcode : inst.Is(other.opcode, other.operand);
 
 
-        public static Label FindIfBegin(IEnumerator<CodeInstruction> enumerator, IEnumerator<CodeInstruction> findEnumerator)
+        public static Label FindIfBegin(IEnumerator<CodeInstruction> enumerator, IEnumerator<CodeInstruction> findEnumerator, out List<CodeInstruction> beforeIfBlock)
         {
+            beforeIfBlock = new List<CodeInstruction>();
             while (findEnumerator.MoveNext() && enumerator.MoveNext())
             {
                 //Logger.Debug($"{enumerator.Current} - {findEnumerator.Current}");
                 if (!enumerator.Current.Is(findEnumerator.Current))
                     findEnumerator.Reset();
+
+                beforeIfBlock.Add(enumerator.Current);
             }
 
             enumerator.MoveNext();
+            beforeIfBlock.Add(enumerator.Current);
             return (Label)enumerator.Current.operand;
         }
         public static IEnumerable<CodeInstruction> GetIfBlock(this IEnumerable<CodeInstruction> instructions, IEnumerable<CodeInstruction> ifCondInsts, bool elseExist = false)
@@ -128,7 +132,7 @@ namespace ParallelBooster
             var enumerator = instructions.GetEnumerator();
             var findEnumerator = ifCondInsts.GetEnumerator();
 
-            var endIfLabel = FindIfBegin(enumerator, findEnumerator);
+            var endIfLabel = FindIfBegin(enumerator, findEnumerator, out _);
 
             for (var prev = (CodeInstruction)default; enumerator.MoveNext(); prev = enumerator.Current)
             {
@@ -160,7 +164,7 @@ namespace ParallelBooster
             var enumerator = instructions.GetEnumerator();
             var findEnumerator = ifCondInsts.GetEnumerator();
 
-            var startElseLabel = FindIfBegin(enumerator, findEnumerator);
+            var startElseLabel = FindIfBegin(enumerator, findEnumerator, out _);
 
             var endElseLabel = (Label)default;
             for (var prev = (CodeInstruction)default; enumerator.MoveNext(); prev = enumerator.Current)
@@ -192,74 +196,82 @@ namespace ParallelBooster
             return result;
         }
 
-        public static IEnumerable<CodeInstruction> ReplaceIfBlock(this IEnumerable<CodeInstruction> instructions, CodeInstruction endIfCondInst, IEnumerable<CodeInstruction> replaceInstructions)
+        public static IEnumerable<CodeInstruction> ReplaceIfBlock(this IEnumerable<CodeInstruction> instructions, IEnumerable<CodeInstruction> ifCondInsts, IEnumerable<CodeInstruction> replaceInstructions, bool elseExist = false)
         {
             var result = new List<CodeInstruction>();
 
-            var enumirator = instructions.GetEnumerator();
+            var enumerator = instructions.GetEnumerator();
+            var findEnumerator = ifCondInsts.GetEnumerator();
 
-            var endIfLabel = (Label)default;
+            var endIfLabel = FindIfBegin(enumerator, findEnumerator, out List<CodeInstruction> beforeIfBlock);
 
-            for (CodeInstruction prev = default; enumirator.MoveNext(); prev = enumirator.Current)
-            {
-                var instruction = enumirator.Current;
-                result.Add(instruction);
-
-                if (prev != null && prev.Is(endIfCondInst))
-                {
-                    endIfLabel = (Label)instruction.operand;
-                    break;
-                }
-            }
-
+            result.AddRange(beforeIfBlock);
             result.AddRange(replaceInstructions);
 
-            while (enumirator.MoveNext())
+            for (var prev = (CodeInstruction)default; enumerator.MoveNext(); prev = enumerator.Current)
             {
-                if (enumirator.Current.labels.Contains(endIfLabel))
+                var instruction = enumerator.Current;
+
+                if (instruction.labels.Contains(endIfLabel))
                 {
-                    result.Add(enumirator.Current);
+                    if(elseExist)
+                        result.Add(prev);
+                    result.Add(instruction);
                     break;
                 }
             }
 
-            while (enumirator.MoveNext())
+            while (enumerator.MoveNext())
             {
-                result.Add(enumirator.Current);
+                result.Add(enumerator.Current);
             }
 
             return result;
         }
 
-        public static IEnumerable<CodeInstruction> ReplaceElseBlock(this IEnumerable<CodeInstruction> instructions, CodeInstruction endIfCondInst, IEnumerable<CodeInstruction> replaceInstructions)
+        public static IEnumerable<CodeInstruction> ReplaceElseBlock(this IEnumerable<CodeInstruction> instructions, IEnumerable<CodeInstruction> ifCondInsts, IEnumerable<CodeInstruction> replaceInstructions)
         {
             var result = new List<CodeInstruction>();
 
-            var enumirator = instructions.GetEnumerator();
+            var enumerator = instructions.GetEnumerator();
+            var findEnumerator = ifCondInsts.GetEnumerator();
 
-            while (enumirator.MoveNext() && !enumirator.Current.Is(endIfCondInst)) ;
+            var startElseLabel = FindIfBegin(enumerator, findEnumerator, out List<CodeInstruction> beforeIfBlock);
 
-            enumirator.MoveNext();
-            var startElseLabel = (Label)enumirator.Current.operand;
+            result.AddRange(beforeIfBlock);
 
-            while (enumirator.MoveNext() && !enumirator.Current.labels.Contains(startElseLabel)) ;
-
-            var endElseLabel = (Label)enumirator.Current.operand;
-
-            result.AddRange(replaceInstructions);
-
-            while (enumirator.MoveNext())
+            var endElseLabel = (Label)default;
+            for (var prev = (CodeInstruction)default; enumerator.MoveNext(); prev = enumerator.Current)
             {
-                if (enumirator.Current.labels.Contains(endElseLabel))
+                var instruction = enumerator.Current;
+
+                if (prev != null)
+                    result.Add(prev);
+
+                if (instruction.labels.Contains(startElseLabel))
                 {
-                    result.Add(enumirator.Current);
+                    result.Add(new CodeInstruction(OpCodes.Nop) { labels = new List<Label> { startElseLabel } });
+                    endElseLabel = (Label)prev.operand;
                     break;
                 }
             }
 
-            while (enumirator.MoveNext())
+            result.AddRange(replaceInstructions);
+
+            while (enumerator.MoveNext())
             {
-                result.Add(enumirator.Current);
+                var instruction = enumerator.Current;
+
+                if (instruction.labels.Contains(endElseLabel))
+                {
+                    result.Add(instruction);
+                    break;
+                }
+            }
+
+            while(enumerator.MoveNext())
+            {
+                result.Add(enumerator.Current);
             }
 
             return result;
