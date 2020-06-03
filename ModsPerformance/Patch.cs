@@ -186,6 +186,7 @@ namespace ModsPerformance
         private static bool UseTasks => true;
         private static bool UsePatch => UseTasks && true;
         private static CustomDispatcher CustomDispatcher { get; } = new CustomDispatcher();
+        public static Stopwatch Stopwatch { get; } = new Stopwatch();
         private static bool EndRenderingImplPrefix(NetManager __instance, CameraInfo cameraInfo)
         {
             __instance.m_nameInstanceBuffer.Clear();
@@ -260,6 +261,7 @@ namespace ModsPerformance
 
             Debug($"Start. {nameof(renderedGroups)}={renderedGroups.m_size} (thread={Thread.CurrentThread.ManagedThreadId})");
             var sw = Stopwatch.StartNew();
+            Stopwatch.Reset();
 
             if (UseTasks)
             {
@@ -292,6 +294,7 @@ namespace ModsPerformance
                 action.Invoke(0);
 
             sw.Stop();
+            Debug($"DrawMesh {Stopwatch.ElapsedTicks}");
             Debug($"End {sw.ElapsedTicks}");
         }
 
@@ -631,6 +634,7 @@ namespace ModsPerformance
                 }
                 if (cameraInfo.CheckRenderDistance(data.m_position, node.m_lodRenderDistance))
                 {
+                    Stopwatch.Start();
                     instance.m_materialBlock.Clear();
                     instance.m_materialBlock.SetMatrix(instance.ID_LeftMatrix, data.m_dataMatrix0);
                     instance.m_materialBlock.SetMatrix(instance.ID_RightMatrix, data.m_extraData.m_dataMatrix2);
@@ -644,7 +648,9 @@ namespace ModsPerformance
                         instance.m_materialBlock.SetVector(instance.ID_SurfaceMapping, data.m_dataVector1);
                     }
                     instance.m_drawCallData.m_defaultCalls++;
+                    
                     Graphics.DrawMesh(node.m_nodeMesh, data.m_position, data.m_rotation, node.m_nodeMaterial, node.m_layer, null, 0, instance.m_materialBlock);
+                    Stopwatch.Stop();
                     continue;
                 }
                 NetInfo.LodValue combinedLod = node.m_combinedLod;
@@ -697,6 +703,7 @@ namespace ModsPerformance
                 }
                 if (cameraInfo.CheckRenderDistance(data.m_position, node2.m_lodRenderDistance))
                 {
+                    Stopwatch.Start();
                     instance2.m_materialBlock.Clear();
                     instance2.m_materialBlock.SetMatrix(instance2.ID_LeftMatrix, data.m_dataMatrix0);
                     instance2.m_materialBlock.SetMatrix(instance2.ID_RightMatrix, data.m_extraData.m_dataMatrix2);
@@ -714,8 +721,9 @@ namespace ModsPerformance
                         instance2.m_materialBlock.SetVector(instance2.ID_SurfaceMapping, data.m_dataVector3);
                     }
                     instance2.m_drawCallData.m_defaultCalls++;
+                    
                     Graphics.DrawMesh(node2.m_nodeMesh, data.m_position, data.m_rotation, node2.m_nodeMaterial, node2.m_layer, null, 0, instance2.m_materialBlock);
-
+                    Stopwatch.Stop();
                     continue;
                 }
                 NetInfo.LodValue combinedLod2 = node2.m_combinedLod;
@@ -770,6 +778,7 @@ namespace ModsPerformance
                 }
                 if (cameraInfo.CheckRenderDistance(data.m_position, node3.m_lodRenderDistance))
                 {
+                    Stopwatch.Start();
                     instance3.m_materialBlock.Clear();
                     instance3.m_materialBlock.SetMatrix(instance3.ID_LeftMatrix, data.m_dataMatrix0);
                     instance3.m_materialBlock.SetMatrix(instance3.ID_RightMatrix, data.m_extraData.m_dataMatrix2);
@@ -787,7 +796,9 @@ namespace ModsPerformance
                         instance3.m_materialBlock.SetVector(instance3.ID_SurfaceMapping, data.m_dataVector3);
                     }
                     instance3.m_drawCallData.m_defaultCalls++;
+                    
                     Graphics.DrawMesh(node3.m_nodeMesh, data.m_position, data.m_rotation, node3.m_nodeMaterial, node3.m_layer, null, 0, instance3.m_materialBlock);
+                    Stopwatch.Stop();
                     continue;
                 }
                 NetInfo.LodValue combinedLod3 = node3.m_combinedLod;
@@ -848,6 +859,7 @@ namespace ModsPerformance
                 }
                 if (cameraInfo.CheckRenderDistance(data.m_position, segment4.m_lodRenderDistance))
                 {
+                    Stopwatch.Start();
                     instance4.m_materialBlock.Clear();
                     instance4.m_materialBlock.SetMatrix(instance4.ID_LeftMatrix, data.m_dataMatrix0);
                     instance4.m_materialBlock.SetMatrix(instance4.ID_RightMatrix, data.m_extraData.m_dataMatrix2);
@@ -861,7 +873,9 @@ namespace ModsPerformance
                         instance4.m_materialBlock.SetVector(instance4.ID_SurfaceMapping, data.m_dataVector1);
                     }
                     instance4.m_drawCallData.m_defaultCalls++;
+                    
                     Graphics.DrawMesh(segment4.m_segmentMesh, data.m_position, data.m_rotation, segment4.m_segmentMaterial, segment4.m_layer, null, 0, instance4.m_materialBlock);
+                    Stopwatch.Stop();
                     continue;
                 }
                 NetInfo.LodValue combinedLod4 = segment4.m_combinedLod;
@@ -938,6 +952,7 @@ namespace ModsPerformance
                 }
                 if (cameraInfo.CheckRenderDistance(data.m_position, node4.m_lodRenderDistance))
                 {
+                    Stopwatch.Start();
                     instance4.m_materialBlock.Clear();
                     instance4.m_materialBlock.SetMatrix(instance4.ID_LeftMatrix, data.m_dataMatrix0);
                     instance4.m_materialBlock.SetMatrix(instance4.ID_RightMatrix, data.m_extraData.m_dataMatrix2);
@@ -951,7 +966,9 @@ namespace ModsPerformance
                         instance4.m_materialBlock.SetVector(instance4.ID_SurfaceMapping, data.m_dataVector1);
                     }
                     instance4.m_drawCallData.m_defaultCalls++;
+                    
                     Graphics.DrawMesh(node4.m_nodeMesh, data.m_position, data.m_rotation, node4.m_nodeMaterial, node4.m_layer, null, 0, instance4.m_materialBlock);
+                    Stopwatch.Stop();
                     continue;
                 }
                 NetInfo.LodValue combinedLod5 = node4.m_combinedLod;
@@ -1137,7 +1154,7 @@ namespace ModsPerformance
             if (info.m_segments != null && (layerMask & info.m_netLayers) != 0)
             {
                 var dataLocal = data;
-                var renderAction = new Action(() => NetSegmentRenderMainThread(__instance, cameraInfo, info, dataLocal));
+                var renderAction = new Action(() => NetSegmentRenderMainThread(__instance, cameraInfo, info, dataLocal, instance));
                 if (UseTasks)
                     CustomDispatcher.Add(renderAction);
                 else
@@ -1215,9 +1232,9 @@ namespace ModsPerformance
             return false;
         }
 
-        private static void NetSegmentRenderMainThread(NetSegment __instance, RenderManager.CameraInfo cameraInfo, NetInfo info, RenderManager.Instance dataLocal)
+        private static void NetSegmentRenderMainThread(NetSegment __instance, RenderManager.CameraInfo cameraInfo, NetInfo info, RenderManager.Instance dataLocal, NetManager instance)
         {
-            NetManager instance = Singleton<NetManager>.instance;
+            //NetManager instance = Singleton<NetManager>.instance;
 
             for (int j = 0; j < info.m_segments.Length; j++)
             {
@@ -1239,6 +1256,7 @@ namespace ModsPerformance
                 }
                 if (cameraInfo.CheckRenderDistance(dataLocal.m_position, segment.m_lodRenderDistance))
                 {
+                    Stopwatch.Start();
                     instance.m_materialBlock.Clear();
                     instance.m_materialBlock.SetMatrix(instance.ID_LeftMatrix, dataLocal.m_dataMatrix0);
                     instance.m_materialBlock.SetMatrix(instance.ID_RightMatrix, dataLocal.m_dataMatrix1);
@@ -1257,8 +1275,9 @@ namespace ModsPerformance
                         instance.m_materialBlock.SetVector(instance.ID_HeightMapping, dataLocal.m_dataVector1);
                         instance.m_materialBlock.SetVector(instance.ID_SurfaceMapping, dataLocal.m_dataVector2);
                     }
-                    instance.m_drawCallData.m_defaultCalls++;
+                    instance.m_drawCallData.m_defaultCalls++;                   
                     Graphics.DrawMesh(segment.m_segmentMesh, dataLocal.m_position, dataLocal.m_rotation, segment.m_segmentMaterial, segment.m_layer, null, 0, instance.m_materialBlock);
+                    Stopwatch.Stop();
                     continue;
                 }
                 NetInfo.LodValue combinedLod = segment.m_combinedLod;
@@ -1303,10 +1322,8 @@ namespace ModsPerformance
             }
         }
 
-        private static void NetSegmentRenderMainThread2(NetSegment __instance, RenderManager.CameraInfo cameraInfo, ushort segmentID, int layerMask, NetInfo info, ref RenderManager.Instance data, NetManager instance, NetNode.Flags flags3, NetNode.Flags flags4, Color color3, Color color4, float startAngle2, float endAngle2, bool invert2, Vector4 objectIndex, Vector4 objectIndex2)
+        private static void NetSegmentRenderMainThread2(NetSegment __instance, RenderManager.CameraInfo cameraInfo, ushort segmentID, int layerMask, NetInfo info, ref RenderManager.Instance data, NetManager instance, int propIndex2, uint num2, NetNode.Flags flags3, NetNode.Flags flags4, Color color3, Color color4, float startAngle2, float endAngle2, bool invert2, Vector4 objectIndex, Vector4 objectIndex2)
         {
-            int propIndex2 = (info.m_segments != null && info.m_segments.Length != 0) ? (-1) : 0;
-            uint num2 = __instance.m_lanes;
             if ((__instance.m_flags & NetSegment.Flags.Collapsed) != 0)
             {
                 for (int k = 0; k < info.m_lanes.Length; k++)

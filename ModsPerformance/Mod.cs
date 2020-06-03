@@ -88,11 +88,11 @@ namespace ModsPerformance
             harmony.Patch(AccessTools.Method(typeof(RenderManager), "LateUpdate"), new HarmonyMethod(AccessTools.Method(typeof(Patcher), nameof(Patcher.RenderManagerLateUpdatePrefix))));
             Debug($"RenderManager.LateUpdate patched");
 
-            harmony.Patch(AccessTools.Method(typeof(NetManager), "EndRenderingImpl"), new HarmonyMethod(AccessTools.Method(typeof(Patcher), nameof(Patcher.EndRenderingImplPrefix))));
-            Debug($"NetManager.EndRenderingImpl patched");
-
             if (UsePatch)
             {
+                harmony.Patch(AccessTools.Method(typeof(NetManager), "EndRenderingImpl"), new HarmonyMethod(AccessTools.Method(typeof(Patcher), nameof(Patcher.EndRenderingImplPrefix))));
+                Debug($"NetManager.EndRenderingImpl patched");
+
                 RefreshJunctionDataMethod = AccessTools.Method(typeof(NetNode), "RefreshJunctionData", new Type[] { typeof(ushort), typeof(NetInfo), typeof(uint) });
                 RefreshBendDataMethod = AccessTools.Method(typeof(NetNode), "RefreshBendData");
                 RefreshEndDataMethod = AccessTools.Method(typeof(NetNode), "RefreshEndData");

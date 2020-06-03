@@ -33,47 +33,80 @@ namespace ParallelBooster
 
         public static void PatchTranspiler(Harmony harmony, MethodInfo originalMethod, MethodInfo transpilerMethod)
         {
-            harmony.Patch(originalMethod, transpiler: new HarmonyMethod(transpilerMethod));
+            harmony.Patch(originalMethod, transpiler: new HarmonyMethod(transpilerMethod, priority: Priority.Last));
             Logger.Debug($"Patched {originalMethod.DeclaringType.Name}.{originalMethod.Name}");
         }
         public static void PatchReverse(Harmony harmony, MethodInfo originalMethod, MethodInfo extractedMethod)
         {
-            var reversePatcher = harmony.CreateReversePatcher(originalMethod, new HarmonyMethod(extractedMethod));
+            var reversePatcher = harmony.CreateReversePatcher(originalMethod, new HarmonyMethod(extractedMethod, priority: Priority.Last));
             reversePatcher.Patch();
             Logger.Debug($"Created reverse patch {extractedMethod.DeclaringType.Name}.{extractedMethod.Name}");
         }
 
-        public static IEnumerable<CodeInstruction> GetFor(this IEnumerable<CodeInstruction> instructions, CodeInstruction startLoopInstruction)
+        public static List<CodeInstruction> GetFor(this IEnumerable<CodeInstruction> instructions, CodeInstruction startLoopInstruction)
         {
+            var result = new List<CodeInstruction>();
+
             var enumerator = instructions.GetEnumerator();
 
-            while (enumerator.MoveNext() && !enumerator.Current.IsForStart(startLoopInstruction)) ;
-            enumerator.MoveNext();
-
-            var startLoopLabel = (Label)default;
-            while (enumerator.MoveNext())
+            for (var prevInstruction = (CodeInstruction)null; enumerator.MoveNext(); prevInstruction = enumerator.Current)
             {
                 var instruction = enumerator.Current;
-                yield return instruction;
-
-                if (startLoopLabel == default)
-                    startLoopLabel = instruction.labels.First();
-                if (instruction.operand is Label label && label == startLoopLabel)
+                //Logger.Debug($"{instruction} - {startLoopInstruction}");
+                if (instruction.IsForStart(startLoopInstruction))
+                {
+                    result.Add(prevInstruction);
+                    result.Add(instruction);
                     break;
+                }
             }
+
+            var startLoopLabel = (Label)default;
+            for (var prevInstruction = (CodeInstruction)null; enumerator.MoveNext(); prevInstruction = enumerator.Current)
+            {
+                if (prevInstruction != null)
+                {
+                    result.Add(prevInstruction);
+
+                    if (prevInstruction.opcode == OpCodes.Br)
+                    {
+                        startLoopLabel = enumerator.Current.labels.First();
+                        break;
+                    }
+                }
+            }
+
+            for (var prevInstruction = enumerator.Current; enumerator.MoveNext(); prevInstruction = enumerator.Current)
+            {
+                result.Add(prevInstruction);
+
+                var instruction = enumerator.Current;
+                if (instruction.operand is Label label && label == startLoopLabel)
+                {
+                    result.Add(instruction);
+                    break;
+                }
+            }
+
+            return result;
         }
 
-        public static IEnumerable<CodeInstruction> ReplaceFor(this IEnumerable<CodeInstruction> instructions, CodeInstruction startLoopInstruction, IEnumerable<CodeInstruction> replaceInstructions)
+        public static List<CodeInstruction> ReplaceFor(this IEnumerable<CodeInstruction> instructions, CodeInstruction startLoopInstruction, IEnumerable<CodeInstruction> replaceInstructions)
         {
+            var result = new List<CodeInstruction>();
+
             var enumerator = instructions.GetEnumerator();
 
             for (var prevInstruction = (CodeInstruction)null; enumerator.MoveNext(); prevInstruction = enumerator.Current)
             {
                 var instruction = enumerator.Current;
                 if (instruction.IsForStart(startLoopInstruction))
+                {
+                    result.Add(new CodeInstruction(OpCodes.Nop) { labels = prevInstruction.labels });
                     break;
+                }
                 else if (prevInstruction != null)
-                    yield return prevInstruction;
+                    result.Add(prevInstruction);
             }
 
             enumerator.MoveNext();
@@ -82,11 +115,12 @@ namespace ParallelBooster
 
             while (enumerator.MoveNext() && !enumerator.Current.IsForEnd(startLoopLabel)) ;
 
-            foreach (var replaceInstruction in replaceInstructions)
-                yield return replaceInstruction;
+            result.AddRange(replaceInstructions);
 
             while (enumerator.MoveNext())
-                yield return enumerator.Current;
+                result.Add(enumerator.Current);
+
+            return result;
         }
 
         public static CodeInstruction GetIVarInstruction(uint iVarIndex, bool shortCode = true)
@@ -124,7 +158,7 @@ namespace ParallelBooster
             beforeIfBlock.Add(enumerator.Current);
             return (Label)enumerator.Current.operand;
         }
-        public static IEnumerable<CodeInstruction> GetIfBlock(this IEnumerable<CodeInstruction> instructions, IEnumerable<CodeInstruction> ifCondInsts, bool elseExist = false)
+        public static List<CodeInstruction> GetIfBlock(this IEnumerable<CodeInstruction> instructions, IEnumerable<CodeInstruction> ifCondInsts, bool elseExist = false)
         {
             var result = new List<CodeInstruction>();
             var endLabels = new List<Label>();
@@ -156,7 +190,7 @@ namespace ParallelBooster
             result.Add(new CodeInstruction(OpCodes.Nop) { labels = endLabels });
             return result;
         }
-        public static IEnumerable<CodeInstruction> GetElseBlock(this IEnumerable<CodeInstruction> instructions, IEnumerable<CodeInstruction> ifCondInsts)
+        public static List<CodeInstruction> GetElseBlock(this IEnumerable<CodeInstruction> instructions, IEnumerable<CodeInstruction> ifCondInsts)
         {
             var result = new List<CodeInstruction>();
             var endLabels = new List<Label>();
@@ -196,7 +230,7 @@ namespace ParallelBooster
             return result;
         }
 
-        public static IEnumerable<CodeInstruction> ReplaceIfBlock(this IEnumerable<CodeInstruction> instructions, IEnumerable<CodeInstruction> ifCondInsts, IEnumerable<CodeInstruction> replaceInstructions, bool elseExist = false)
+        public static List<CodeInstruction> ReplaceIfBlock(this IEnumerable<CodeInstruction> instructions, IEnumerable<CodeInstruction> ifCondInsts, IEnumerable<CodeInstruction> replaceInstructions, bool elseExist = false)
         {
             var result = new List<CodeInstruction>();
 
@@ -214,7 +248,7 @@ namespace ParallelBooster
 
                 if (instruction.labels.Contains(endIfLabel))
                 {
-                    if(elseExist)
+                    if (elseExist)
                         result.Add(prev);
                     result.Add(instruction);
                     break;
@@ -229,7 +263,7 @@ namespace ParallelBooster
             return result;
         }
 
-        public static IEnumerable<CodeInstruction> ReplaceElseBlock(this IEnumerable<CodeInstruction> instructions, IEnumerable<CodeInstruction> ifCondInsts, IEnumerable<CodeInstruction> replaceInstructions)
+        public static List<CodeInstruction> ReplaceElseBlock(this IEnumerable<CodeInstruction> instructions, IEnumerable<CodeInstruction> ifCondInsts, IEnumerable<CodeInstruction> replaceInstructions)
         {
             var result = new List<CodeInstruction>();
 
@@ -269,12 +303,18 @@ namespace ParallelBooster
                 }
             }
 
-            while(enumerator.MoveNext())
+            while (enumerator.MoveNext())
             {
                 result.Add(enumerator.Current);
             }
 
             return result;
+        }
+
+        public static void AddStopWatch(List<CodeInstruction> instructions)
+        {
+            instructions.Insert(0, new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(NetManagerRenderPatch), nameof(NetManagerRenderPatch.Start))));
+            instructions.Add(new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(NetManagerRenderPatch), nameof(NetManagerRenderPatch.Stop))));
         }
     }
 }
