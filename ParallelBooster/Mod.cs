@@ -11,7 +11,7 @@ namespace ParallelBooster
     public class Mod : LoadingExtensionBase, IUserMod
     {
         public string Version => Assembly.GetExecutingAssembly().GetCustomAttributes(typeof(AssemblyFileVersionAttribute), true).OfType<AssemblyFileVersionAttribute>().FirstOrDefault() is AssemblyFileVersionAttribute versionAttribute ? versionAttribute.Version : string.Empty;
-        public string Name => $"{nameof(ParallelBooster)} {Version} [BETA]";
+        public string Name => $"{nameof(ParallelBooster)} {Version} [ALPHA]";
         public string Description => "Increases performance by parallelizing render calculations";
 
         public Mod()

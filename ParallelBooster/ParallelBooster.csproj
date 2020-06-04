@@ -18,7 +18,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>TRACE;DEBUG;Debug; </DefineConstants>
+    <DefineConstants>TRACE;DEBUG;UseTask; IL</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
@@ -66,7 +66,11 @@
     <Compile Include="Log.cs" />
     <Compile Include="Mod.cs" />
     <Compile Include="Patcher.cs" />
+    <Compile Include="Patches\NetLane.cs" />
+    <Compile Include="Patches\NetSegment.cs" />
+    <Compile Include="Patches\NetNode.cs" />
     <Compile Include="Patches\NetManager.cs" />
+    <Compile Include="Patches\RenderManager.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

@@ -183,7 +183,7 @@ namespace ModsPerformance
         }
 
         private static int TaskCount => 1;
-        private static bool UseTasks => true;
+        private static bool UseTasks => false;
         private static bool UsePatch => UseTasks && true;
         private static CustomDispatcher CustomDispatcher { get; } = new CustomDispatcher();
         public static Stopwatch Stopwatch { get; } = new Stopwatch();
@@ -1199,6 +1199,7 @@ namespace ModsPerformance
             var localData = data;
             var action = new Action(() =>
             {
+                Stopwatch.Start();
                 int propIndex2 = (info.m_segments != null && info.m_segments.Length != 0) ? (-1) : 0;
                 uint num2 = __instance.m_lanes;
                 if ((__instance.m_flags & NetSegment.Flags.Collapsed) != 0)
@@ -1223,6 +1224,7 @@ namespace ModsPerformance
                     instance.m_lanes.m_buffer[num2].RenderInstance(cameraInfo, segmentID, num2, info.m_lanes[l], flags3, flags4, color3, color4, startAngle2, endAngle2, invert2, layerMask, objectIndex, objectIndex2, ref localData, ref propIndex2);
                     num2 = instance.m_lanes.m_buffer[num2].m_nextLane;
                 }
+                Stopwatch.Stop();
             });
             if (UseTasks)
                 CustomDispatcher.Add(action);

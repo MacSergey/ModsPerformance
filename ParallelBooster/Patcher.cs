@@ -16,6 +16,8 @@ namespace ParallelBooster
     public static class Patcher
     {
         private static string HarmonyId { get; } = nameof(ParallelBooster);
+        internal static CustomDispatcher Dispatcher { get; } = new CustomDispatcher();
+        internal static Stopwatch Stopwatch { get; } = new Stopwatch();
 
         public static void Patch() => HarmonyHelper.DoOnHarmonyReady(() => Begin());
         public static void Unpatch()
@@ -28,18 +30,29 @@ namespace ParallelBooster
         {
             var harmony = new Harmony(HarmonyId);
 
-            NetManagerRenderPatch.Patch(harmony);
+            NetManagerPatch.Patch(harmony);
+            NetNodePatch.Patch(harmony);
+            NetSegmentPatch.Patch(harmony);
+            NetLanePatch.Patch(harmony);
         }
+
+        public static void Start() => Stopwatch.Start();
+        public static void Stop() => Stopwatch.Stop();
 
         public static void PatchTranspiler(Harmony harmony, MethodInfo originalMethod, MethodInfo transpilerMethod)
         {
             harmony.Patch(originalMethod, transpiler: new HarmonyMethod(transpilerMethod, priority: Priority.Last));
             Logger.Debug($"Patched {originalMethod.DeclaringType.Name}.{originalMethod.Name}");
         }
+        public static void PatchPrefix(Harmony harmony, MethodInfo originalMethod, MethodInfo prefixMethod)
+        {
+            harmony.Patch(originalMethod, prefix: new HarmonyMethod(prefixMethod, priority: Priority.Last));
+            Logger.Debug($"Patched {originalMethod.DeclaringType.Name}.{originalMethod.Name}");
+        }
         public static void PatchReverse(Harmony harmony, MethodInfo originalMethod, MethodInfo extractedMethod)
         {
             var reversePatcher = harmony.CreateReversePatcher(originalMethod, new HarmonyMethod(extractedMethod, priority: Priority.Last));
-            reversePatcher.Patch();
+            reversePatcher.Patch(HarmonyReversePatchType.Snapshot);
             Logger.Debug($"Created reverse patch {extractedMethod.DeclaringType.Name}.{extractedMethod.Name}");
         }
 
@@ -313,8 +326,8 @@ namespace ParallelBooster
 
         public static void AddStopWatch(List<CodeInstruction> instructions)
         {
-            instructions.Insert(0, new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(NetManagerRenderPatch), nameof(NetManagerRenderPatch.Start))));
-            instructions.Add(new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(NetManagerRenderPatch), nameof(NetManagerRenderPatch.Stop))));
+            instructions.Insert(0, new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Patcher), nameof(Patcher.Start))));
+            instructions.Add(new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Patcher), nameof(Patcher.Stop))));
         }
     }
 }
