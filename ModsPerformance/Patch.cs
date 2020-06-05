@@ -21,10 +21,6 @@ namespace ModsPerformance
         private static bool RenderManagerLateUpdatePrefix(RenderManager __instance, ref uint ___m_currentFrame, ref FastList<IRenderableManager> ___m_renderables, ref CameraInfo ___m_cameraInfo, ref LightSystem ___m_lightSystem)
         {
             var allSW = new Stopwatch();
-            var beginRenderingSW = new Stopwatch();
-            var renderCameraInfoSW = new Stopwatch();
-            var renderMegaGroupSW = new Stopwatch();
-            var renderGroupMaskSW = new Stopwatch();
             var endRenderingSW = new Stopwatch();
             var endRenderingSWdetails = new Dictionary<string, Stopwatch>();
 
@@ -43,12 +39,10 @@ namespace ModsPerformance
                 //UpdateColorMap();
                 try
                 {
-                    beginRenderingSW.Start();
                     for (int i = 0; i < ___m_renderables.m_size; i++)
                     {
                         ___m_renderables.m_buffer[i].BeginRendering(___m_cameraInfo);
                     }
-                    beginRenderingSW.Stop();
                 }
                 finally
                 {
@@ -84,8 +78,6 @@ namespace ModsPerformance
                     int num9 = -10000;
                     __instance.m_renderedGroups.Clear();
 
-
-                    renderCameraInfoSW.Start();
                     for (int j = num2; j <= num4; j++)
                     {
                         for (int k = num; k <= num3; k++)
@@ -112,9 +104,6 @@ namespace ModsPerformance
                             }
                         }
                     }
-                    renderCameraInfoSW.Stop();
-
-                    renderMegaGroupSW.Start();
                     for (int l = num7; l <= num9; l++)
                     {
                         for (int m = num6; m <= num8; m++)
@@ -123,9 +112,6 @@ namespace ModsPerformance
                             __instance.m_megaGroups[num14]?.Render();
                         }
                     }
-                    renderMegaGroupSW.Stop();
-
-                    renderGroupMaskSW.Start();
                     for (int n = 0; n < __instance.m_renderedGroups.m_size; n++)
                     {
                         RenderGroup renderGroup2 = __instance.m_renderedGroups.m_buffer[n];
@@ -135,10 +121,8 @@ namespace ModsPerformance
                         MegaRenderGroup megaRenderGroup2 = __instance.m_megaGroups[num17];
                         if (megaRenderGroup2 != null && megaRenderGroup2.m_groupMask != 0)
                         {
-                            renderGroup2.Render(megaRenderGroup2.m_groupMask);
                         }
                     }
-                    renderGroupMaskSW.Stop();
                 }
                 finally
                 {
@@ -170,12 +154,14 @@ namespace ModsPerformance
                 //SWResult(nameof(renderGroupMaskSW), renderGroupMaskSW, allSW),
                 SWResult(nameof(endRenderingSW), endRenderingSW, allSW),
             };
-            foreach (var endRenderingSWdetail in endRenderingSWdetails)
-            {
-                swResult.Add(SWResult($"{endRenderingSWdetail.Key}.EndRendering", endRenderingSWdetail.Value, allSW));
-            }
+            //foreach (var endRenderingSWdetail in endRenderingSWdetails)
+            //{
+            //    swResult.Add(SWResult($"{endRenderingSWdetail.Key}.EndRendering", endRenderingSWdetail.Value, allSW));
+            //}
+            Debug(SWResult(nameof(allSW), allSW, allSW));
+            Debug(SWResult(nameof(endRenderingSW), endRenderingSW, allSW));
 
-            Debug(string.Join("", swResult.ToArray()));
+            //Debug(string.Join("", swResult.ToArray()));
 
             return false;
 

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 
@@ -8,18 +9,18 @@ namespace ParallelBooster
     public class CustomDispatcher
     {
         private Action[] Actions { get; } = new Action[100000];
-        private int Count { get; set; }
-        private int Start { get; set; }
-        public bool IsDone
-        {
-            get
-            {
-                lock(Lock)
-                {
-                    return Start == Count;
-                }
-            }
-        }
+        public int Count { get; private set; }
+        public int Executed { get; private set; }
+        public bool NothingExecute => Executed == Count;
+        //{
+        //    get
+        //    {
+        //        lock(Lock)
+        //        {
+        //            return Start == Count;
+        //        }
+        //    }
+        //}
         private object Lock { get; } = new object();
 
         public CustomDispatcher()
@@ -43,22 +44,25 @@ namespace ParallelBooster
         }
         public void Execute()
         {
+            if (NothingExecute)
+                return;
+
             int currentCount;
             lock(Lock)
             {
                 currentCount = Count;
             }
-
-            for (int i = Start; i < currentCount; i += 1)
+            //Logger.Debug($"Execute from #{Start} to #{currentCount}");
+            for (int i = Executed; i < currentCount; i += 1)
             {
                 Actions[i]?.Invoke();
             }
-            Start = currentCount;
+            Executed = currentCount;
         }
         public void Clear()
         {
             Count = 0;
-            Start = 0;
+            Executed = 0;
         }
     }
 }

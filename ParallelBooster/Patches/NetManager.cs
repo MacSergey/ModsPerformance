@@ -24,8 +24,11 @@ namespace ParallelBooster.Patches
             var extractedMethod = AccessTools.Method(typeof(NetManagerPatch), nameof(EndRenderingImplExtracted));
             Patcher.PatchReverse(harmony, originalMethod, extractedMethod);
 
-            var transpilerMethod = AccessTools.Method(typeof(NetManagerPatch), nameof(EndRenderingImplPatch)); 
+            var transpilerMethod = AccessTools.Method(typeof(NetManagerPatch), nameof(EndRenderingImplPatch));
             Patcher.PatchTranspiler(harmony, originalMethod, transpilerMethod);
+
+            var prefixMethod = AccessTools.Method(typeof(NetManagerPatch), nameof(EndRenderingImplPrefix));
+            Patcher.PatchPrefix(harmony, originalMethod, prefixMethod);
         }
 
         public static void RenderGroups(NetManager instance, CameraInfo cameraInfo, FastList<RenderGroup> renderedGroups)
@@ -61,7 +64,7 @@ namespace ParallelBooster.Patches
             }
 
 
-            while (tasks.Any(t => !t.hasEnded) || !Patcher.Dispatcher.IsDone)
+            while (tasks.Any(t => !t.hasEnded) || !Patcher.Dispatcher.NothingExecute)
             {
 #if Debug
                 dipsSw.Start();
@@ -72,7 +75,7 @@ namespace ParallelBooster.Patches
 #endif
             }
 #else
-                EndRenderingImplExtracted(instance, cameraInfo, renderedGroups);
+                EndRenderingImplExtracted(instance, cameraInfo, renderedGroups, 0, 1);
 #endif
 
 #if Debug
@@ -101,7 +104,7 @@ namespace ParallelBooster.Patches
                 Logger.AddDebugInstructions(newInstructions, nameof(NetManagerPatch), nameof(NetManagerPatch.EndRenderingImplPatch));
 #endif
 #if Debug && IL
-                Logger.Debug(nameof(NetManagerPatch), nameof(NetManagerPatch.EndRenderingImplPatch), newInstructions);
+            Logger.Debug(nameof(NetManagerPatch), nameof(NetManagerPatch.EndRenderingImplPatch), newInstructions);
 #endif
             return newInstructions;
         }
@@ -135,6 +138,118 @@ namespace ParallelBooster.Patches
             }
 
             _ = Transpiler(null);
+        }
+
+        public static bool EndRenderingImplPrefix(NetManager __instance, CameraInfo cameraInfo)
+        {
+            FastList<RenderGroup> renderedGroups = Singleton<RenderManager>.instance.m_renderedGroups;
+            __instance.m_nameInstanceBuffer.Clear();
+            __instance.m_visibleRoadNameSegment = 0;
+            __instance.m_visibleTrafficLightNode = 0;
+            for (int i = 0; i < renderedGroups.m_size; i++)
+            {
+                RenderGroup renderGroup = renderedGroups.m_buffer[i];
+                if (renderGroup.m_instanceMask == 0)
+                {
+                    continue;
+                }
+                int num = renderGroup.m_x * 270 / 45;
+                int num2 = renderGroup.m_z * 270 / 45;
+                int num3 = (renderGroup.m_x + 1) * 270 / 45 - 1;
+                int num4 = (renderGroup.m_z + 1) * 270 / 45 - 1;
+                for (int j = num2; j <= num4; j++)
+                {
+                    for (int k = num; k <= num3; k++)
+                    {
+                        int num5 = j * 270 + k;
+                        ushort num6 = __instance.m_nodeGrid[num5];
+                        int num7 = 0;
+                        while (num6 != 0)
+                        {
+                            __instance.m_nodes.m_buffer[num6].RenderInstance(cameraInfo, num6, renderGroup.m_instanceMask);
+                            num6 = __instance.m_nodes.m_buffer[num6].m_nextGridNode;
+                            if (++num7 >= 32768)
+                            {
+                                CODebugBase<LogChannel>.Error(LogChannel.Core, "Invalid list detected!\n" + Environment.StackTrace);
+                                break;
+                            }
+                        }
+                    }
+                }
+                for (int l = num2; l <= num4; l++)
+                {
+                    for (int m = num; m <= num3; m++)
+                    {
+                        int num8 = l * 270 + m;
+                        ushort num9 = __instance.m_segmentGrid[num8];
+                        int num10 = 0;
+                        while (num9 != 0)
+                        {
+                            __instance.m_segments.m_buffer[num9].RenderInstance(cameraInfo, num9, renderGroup.m_instanceMask);
+                            num9 = __instance.m_segments.m_buffer[num9].m_nextGridSegment;
+                            if (++num10 >= 36864)
+                            {
+                                CODebugBase<LogChannel>.Error(LogChannel.Core, "Invalid list detected!\n" + Environment.StackTrace);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            __instance.m_lastVisibleRoadNameSegment = __instance.m_visibleRoadNameSegment;
+            __instance.m_lastVisibleTrafficLightNode = __instance.m_visibleTrafficLightNode;
+            int num11 = PrefabCollection<NetInfo>.PrefabCount();
+
+            var action = new Action(() =>
+            {
+                for (int n = 0; n < num11; n++)
+                {
+                    NetInfo prefab = PrefabCollection<NetInfo>.GetPrefab((uint)n);
+                    if ((object)prefab == null)
+                    {
+                        continue;
+                    }
+                    if (prefab.m_segments != null)
+                    {
+                        for (int num12 = 0; num12 < prefab.m_segments.Length; num12++)
+                        {
+                            NetInfo.Segment segment = prefab.m_segments[num12];
+                            NetInfo.LodValue combinedLod = segment.m_combinedLod;
+                            if (combinedLod != null && combinedLod.m_lodCount != 0)
+                            {
+                                NetSegment.RenderLod(cameraInfo, combinedLod);
+                            }
+                        }
+                    }
+                    if (prefab.m_nodes == null)
+                    {
+                        continue;
+                    }
+                    for (int num13 = 0; num13 < prefab.m_nodes.Length; num13++)
+                    {
+                        NetInfo.Node node = prefab.m_nodes[num13];
+                        NetInfo.LodValue combinedLod2 = node.m_combinedLod;
+                        if (combinedLod2 != null && combinedLod2.m_lodCount != 0)
+                        {
+                            if (node.m_directConnect)
+                            {
+                                NetSegment.RenderLod(cameraInfo, combinedLod2);
+                            }
+                            else
+                            {
+                                NetNode.RenderLod(cameraInfo, combinedLod2);
+                            }
+                        }
+                    }
+                }
+            });
+#if UseTask
+            Patcher.Dispatcher.Add(action);
+#else
+            action.Invoke();
+#endif
+
+            return false;
         }
     }
 }

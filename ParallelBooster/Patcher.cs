@@ -30,10 +30,17 @@ namespace ParallelBooster
         {
             var harmony = new Harmony(HarmonyId);
 
+            RenderManagerPatch.Patch(harmony);
             NetManagerPatch.Patch(harmony);
             NetNodePatch.Patch(harmony);
             NetSegmentPatch.Patch(harmony);
             NetLanePatch.Patch(harmony);
+            VehicleManagerPatch.Patch(harmony);
+            VehiclePatch.Patch(harmony);
+            CitizenManagerPatch.Patch(harmony);
+            CitizenInstancePatch.Patch(harmony);
+            BuildingManagerPath.Patch(harmony);
+            BuildingAIPatch.Patch(harmony);
         }
 
         public static void Start() => Stopwatch.Start();
@@ -326,8 +333,8 @@ namespace ParallelBooster
 
         public static void AddStopWatch(List<CodeInstruction> instructions)
         {
-            instructions.Insert(0, new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Patcher), nameof(Patcher.Start))));
-            instructions.Add(new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Patcher), nameof(Patcher.Stop))));
+            //instructions.Insert(0, new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Patcher), nameof(Patcher.Start))));
+            //instructions.Add(new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Patcher), nameof(Patcher.Stop))));
         }
     }
 }
