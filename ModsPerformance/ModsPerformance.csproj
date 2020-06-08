@@ -61,9 +61,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="CustomDispatcher.cs" />
     <Compile Include="Mod.cs" />
-    <Compile Include="Patch.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
