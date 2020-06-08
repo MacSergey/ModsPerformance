@@ -35,12 +35,12 @@ namespace ParallelBooster
             NetNodePatch.Patch(harmony);
             NetSegmentPatch.Patch(harmony);
             NetLanePatch.Patch(harmony);
-            VehicleManagerPatch.Patch(harmony);
-            VehiclePatch.Patch(harmony);
-            CitizenManagerPatch.Patch(harmony);
-            CitizenInstancePatch.Patch(harmony);
-            BuildingManagerPath.Patch(harmony);
-            BuildingAIPatch.Patch(harmony);
+            //VehicleManagerPatch.Patch(harmony);
+            //VehiclePatch.Patch(harmony);
+            //CitizenManagerPatch.Patch(harmony);
+            //CitizenInstancePatch.Patch(harmony);
+            //BuildingManagerPath.Patch(harmony);
+            //BuildingAIPatch.Patch(harmony);
         }
 
         public static void Start() => Stopwatch.Start();

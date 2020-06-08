@@ -12,6 +12,7 @@ namespace ParallelBooster.Patches
 {
     public static class CitizenInstancePatch
     {
+        private delegate void RenderInstanceExtractedDelegate(CitizenInstance __instance, RenderManager.CameraInfo cameraInfo, ushort instanceID, CitizenInfo info, Vector3 vector, Frame frameData, Frame frameData2, float t, Quaternion quaternion, Color color, bool flag, bool flag3);
         public static void Patch(Harmony harmony)
         {
             var originalMethod = AccessTools.Method(typeof(CitizenInstance), nameof(Vehicle.RenderInstance), new Type[] { typeof(RenderManager.CameraInfo), typeof(ushort) });
@@ -64,51 +65,61 @@ namespace ParallelBooster.Patches
             Vector3 vector = bezier.Position(t);
             Quaternion quaternion = Quaternion.Lerp(frameData.m_rotation, frameData2.m_rotation, t);
             Color color = info.m_citizenAI.GetColor(instanceID, ref __instance, Singleton<InfoManager>.instance.CurrentMode);
-
-            var action = new Action(() =>
-            {
-                if (cameraInfo.CheckRenderDistance(vector, info.m_lodRenderDistance))
-                {
-                    InstanceID empty = InstanceID.Empty;
-                    empty.CitizenInstance = instanceID;
-                    CitizenInfo citizenInfo = info.ObtainPrefabInstance<CitizenInfo>(empty, 255);
-                    if (citizenInfo != null)
-                    {
-                        Vector3 velocity = Vector3.Lerp(frameData.m_velocity, frameData2.m_velocity, t);
-                        citizenInfo.m_citizenAI.SetRenderParameters(cameraInfo, instanceID, ref __instance, vector, quaternion, velocity, color, (flag || flag3) && (cameraInfo.m_layerMask & (1 << Singleton<CitizenManager>.instance.m_undergroundLayer)) != 0);
-                        return;
-                    }
-                }
-                if (flag || flag3)
-                {
-                    info.m_undergroundLodLocations[info.m_undergroundLodCount].SetTRS(vector, quaternion, Vector3.one);
-                    info.m_undergroundLodColors[info.m_undergroundLodCount] = color.linear;
-                    info.m_undergroundLodMin = Vector3.Min(info.m_undergroundLodMin, vector);
-                    info.m_undergroundLodMax = Vector3.Max(info.m_undergroundLodMax, vector);
-                    if (++info.m_undergroundLodCount == info.m_undergroundLodLocations.Length)
-                    {
-                        RenderUndergroundLod(cameraInfo, info);
-                    }
-                }
-                if (!flag || flag3)
-                {
-                    info.m_lodLocations[info.m_lodCount].SetTRS(vector, quaternion, Vector3.one);
-                    info.m_lodColors[info.m_lodCount] = color.linear;
-                    info.m_lodMin = Vector3.Min(info.m_lodMin, vector);
-                    info.m_lodMax = Vector3.Max(info.m_lodMax, vector);
-                    if (++info.m_lodCount == info.m_lodLocations.Length)
-                    {
-                        RenderLod(cameraInfo, info);
-                    }
-                }
-            });
 #if UseTask
-            Patcher.Dispatcher.Add(action);
+            Patcher.Dispatcher.Add(RenderInstanceExtractedMethod, __instance, cameraInfo, instanceID, info, vector, frameData, frameData2, t, quaternion, color, flag, flag3);
 #else
-            action.Invoke();
+                        RenderInstanceExtractedMethod.Invoke(__instance, cameraInfo, instanceID, info, vector, frameData, frameData2, t, quaternion, color, flag, flag3);
 #endif
             __result = true;
             return false;
         }
+
+        private static Action<object[]> RenderInstanceExtractedMethod { get; } = new Action<object[]>((args) =>
+        {
+            CitizenInstance __instance = (CitizenInstance)args[0];
+            RenderManager.CameraInfo cameraInfo = (RenderManager.CameraInfo)args[1];
+            ushort instanceID = (ushort)args[2];
+            CitizenInfo info = (CitizenInfo)args[3];
+            Vector3 vector = (Vector3)args[4];
+            Quaternion quaternion = (Quaternion)args[8];
+            Color color = (Color)args[9];
+            bool flag = (bool)args[10];
+            bool flag3 = (bool)args[11];
+
+            if (cameraInfo.CheckRenderDistance(vector, info.m_lodRenderDistance))
+            {
+                InstanceID empty = InstanceID.Empty;
+                empty.CitizenInstance = instanceID;
+                CitizenInfo citizenInfo = info.ObtainPrefabInstance<CitizenInfo>(empty, 255);
+                if (citizenInfo != null)
+                {
+                    Vector3 velocity = Vector3.Lerp(((Frame)args[5]).m_velocity, ((Frame)args[6]).m_velocity, (float)args[7]);
+                    citizenInfo.m_citizenAI.SetRenderParameters(cameraInfo, instanceID, ref __instance, vector, quaternion, velocity, color, (flag || flag3) && (cameraInfo.m_layerMask & (1 << Singleton<CitizenManager>.instance.m_undergroundLayer)) != 0);
+                    return;
+                }
+            }
+            if (flag || flag3)
+            {
+                info.m_undergroundLodLocations[info.m_undergroundLodCount].SetTRS(vector, quaternion, Vector3.one);
+                info.m_undergroundLodColors[info.m_undergroundLodCount] = color.linear;
+                info.m_undergroundLodMin = Vector3.Min(info.m_undergroundLodMin, vector);
+                info.m_undergroundLodMax = Vector3.Max(info.m_undergroundLodMax, vector);
+                if (++info.m_undergroundLodCount == info.m_undergroundLodLocations.Length)
+                {
+                    RenderUndergroundLod(cameraInfo, info);
+                }
+            }
+            if (!flag || flag3)
+            {
+                info.m_lodLocations[info.m_lodCount].SetTRS(vector, quaternion, Vector3.one);
+                info.m_lodColors[info.m_lodCount] = color.linear;
+                info.m_lodMin = Vector3.Min(info.m_lodMin, vector);
+                info.m_lodMax = Vector3.Max(info.m_lodMax, vector);
+                if (++info.m_lodCount == info.m_lodLocations.Length)
+                {
+                    RenderLod(cameraInfo, info);
+                }
+            }
+        });
     }
 }

@@ -106,33 +106,34 @@ namespace ParallelBooster.Patches
                 }
                 ___m_renderBuffer[k] = num7;
             }
-
-            var action = new Action(() =>
-            {
-                int num13 = PrefabCollection<CitizenInfo>.PrefabCount();
-                for (int m = 0; m < num13; m++)
-                {
-                    CitizenInfo prefab = PrefabCollection<CitizenInfo>.GetPrefab((uint)m);
-                    if ((object)prefab != null)
-                    {
-                        prefab.UpdatePrefabInstances();
-                        if (prefab.m_lodCount != 0)
-                        {
-                            CitizenInstance.RenderLod(cameraInfo, prefab);
-                        }
-                        if (prefab.m_undergroundLodCount != 0)
-                        {
-                            CitizenInstance.RenderUndergroundLod(cameraInfo, prefab);
-                        }
-                    }
-                }
-            });
 #if UseTask
-            Patcher.Dispatcher.Add(action);
+            Patcher.Dispatcher.Add(EndRenderingImplExtracted, cameraInfo);
 #else
-            action.Invoke();
+                        EndRenderingImplExtracted.Invoke(cameraInfo);
 #endif
             return false;
         }
+        private static Action<object[]> EndRenderingImplExtracted { get; } = new Action<object[]>((args) =>
+        {
+            RenderManager.CameraInfo cameraInfo = (RenderManager.CameraInfo)args[0];
+
+            int num13 = PrefabCollection<CitizenInfo>.PrefabCount();
+            for (int m = 0; m < num13; m++)
+            {
+                CitizenInfo prefab = PrefabCollection<CitizenInfo>.GetPrefab((uint)m);
+                if ((object)prefab != null)
+                {
+                    prefab.UpdatePrefabInstances();
+                    if (prefab.m_lodCount != 0)
+                    {
+                        CitizenInstance.RenderLod(cameraInfo, prefab);
+                    }
+                    if (prefab.m_undergroundLodCount != 0)
+                    {
+                        CitizenInstance.RenderUndergroundLod(cameraInfo, prefab);
+                    }
+                }
+            }
+        });
     }
 }

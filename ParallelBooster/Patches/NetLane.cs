@@ -151,7 +151,7 @@ namespace ParallelBooster.Patches
                         InstanceID id = default(InstanceID);
                         id.NetSegment = segmentID;
 #if UseTask
-                        Patcher.Dispatcher.Add(() => PropInstance.RenderInstance(cameraInfo, variation, id, vector, scale, num6, color, objectIndex3, active: true));
+                        Patcher.Dispatcher.Add(Delegates.PropsRenderInstanceMethod3, cameraInfo, variation, id, vector, scale, num6, color, objectIndex3,true);
 #else
                         PropInstance.RenderInstance(cameraInfo, variation, id, vector, scale, num6, color, objectIndex3, active: true);
 #endif
@@ -196,7 +196,7 @@ namespace ParallelBooster.Patches
                 if (!randomPropInfo.m_requireHeightMap)
                 {
 #if UseTask
-                    Patcher.Dispatcher.Add(() => PropInstance.RenderInstance(cameraInfo, randomPropInfo, id2, position, num11, angle, color2, objectIndex4, active: true));
+                    Patcher.Dispatcher.Add(Delegates.PropsRenderInstanceMethod3, cameraInfo, randomPropInfo, id2, position, num11, angle, color2, objectIndex4, true);
 #else
                     PropInstance.RenderInstance(cameraInfo, randomPropInfo, id2, position, num11, angle, color2, objectIndex4, active: true);
 #endif
@@ -347,7 +347,7 @@ namespace ParallelBooster.Patches
                                 Singleton<TerrainManager>.instance.GetWaterMapping(Singleton<NetManager>.instance.m_segments.m_buffer[segmentID].m_middlePosition, out _HeightMap2, out _HeightMapping2, out _SurfaceMapping2);
                             }
 #if UseTask
-                            Patcher.Dispatcher.Add(() => PropInstance.RenderInstance(cameraInfo, variation, id, vector, scale, num6, color, objectIndex3, active: true, _HeightMap, _HeightMapping, _SurfaceMapping, _HeightMap2, _HeightMapping2, _SurfaceMapping2));
+                            Patcher.Dispatcher.Add(Delegates.PropsRenderInstanceMethod1, cameraInfo, variation, id, vector, scale, num6, color, objectIndex3, true, _HeightMap, _HeightMapping, _SurfaceMapping, _HeightMap2, _HeightMapping2, _SurfaceMapping2);
 #else
                             PropInstance.RenderInstance(cameraInfo, variation, id, vector, scale, num6, color, objectIndex3, active: true, _HeightMap, _HeightMapping, _SurfaceMapping, _HeightMap2, _HeightMapping2, _SurfaceMapping2);
 #endif
@@ -355,7 +355,7 @@ namespace ParallelBooster.Patches
                         else if (!variation.m_requireHeightMap)
                         {
 #if UseTask
-                            Patcher.Dispatcher.Add(() => PropInstance.RenderInstance(cameraInfo, variation, id, vector, scale, num6, color, objectIndex3, active: true));
+                            Patcher.Dispatcher.Add(Delegates.PropsRenderInstanceMethod3,cameraInfo, variation, id, vector, scale, num6, color, objectIndex3, true);
 #else
                             PropInstance.RenderInstance(cameraInfo, variation, id, vector, scale, num6, color, objectIndex3, active: true);
 #endif
@@ -397,7 +397,7 @@ namespace ParallelBooster.Patches
                         position.z -= vector3.x * prop.m_position.x;
                     }
 #if UseTask
-                    Patcher.Dispatcher.Add(() => TreeInstance.RenderInstance(cameraInfo, variation2, position, scale2, brightness, RenderManager.DefaultColorLocation));
+                    Patcher.Dispatcher.Add(Delegates.TreeRenderInstanceMethod, cameraInfo, variation2, position, scale2, brightness, RenderManager.DefaultColorLocation);
 #else
                     TreeInstance.RenderInstance(cameraInfo, variation2, position, scale2, brightness, RenderManager.DefaultColorLocation);
 #endif

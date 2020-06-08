@@ -25,9 +25,9 @@ namespace ParallelBooster.Patches
         private static HashSet<string> Parallized { get; } = new HashSet<string>
         {
             typeof(NetManager).Name,
-            typeof(VehicleManager).Name,
-            typeof(CitizenManager).Name,
-            typeof(BuildingManager).Name
+            //typeof(VehicleManager).Name,
+            //typeof(CitizenManager).Name,
+            //typeof(BuildingManager).Name
         };
         private static MethodInfo UpdateColorMapMethod { get; } = AccessTools.Method(typeof(RenderManager), "UpdateColorMap");
 
@@ -165,6 +165,29 @@ namespace ParallelBooster.Patches
                     }
                     Patcher.Dispatcher.Clear();
 
+                    //                    var tasks = new Task[parallized.Count];
+                    //                    for (int i = 0; i < parallized.Count; i += 1)
+                    //                    {
+                    //                        var manager = parallized[i];
+                    //                        var task = Task.Create(() =>
+                    //                        {
+                    //#if Debug
+                    //                            Logger.Debug($"Start task (thread={Thread.CurrentThread.ManagedThreadId})");
+                    //                            var tasksw = Stopwatch.StartNew();
+                    //                            var actionDispSw = new Stopwatch();
+                    //                            Patcher.Dispatcher.Add(new Action(() => actionDispSw.Start()), new object[0]);
+                    //#endif
+                    //                            action(manager);
+                    //#if Debug
+                    //                            Patcher.Dispatcher.Add(new Action(() => times[$"Dispatcher {manager.GetType().Name}"] = actionDispSw.ElapsedTicks), new object[0]);
+                    //                            tasksw.Stop();
+                    //                            Logger.Debug($"End task {tasksw.ElapsedTicks}");
+                    //#endif
+                    //                        });
+                    //                        task.Run();
+                    //                        tasks[i] = task;
+                    //                    }
+                    //                    while (tasks.Any(t => !t.hasEnded) || !Patcher.Dispatcher.NothingExecute)
                     var task = Task.Create(() =>
                     {
 #if Debug
@@ -175,11 +198,11 @@ namespace ParallelBooster.Patches
                         {
 #if Debug
                             var actionDispSw = new Stopwatch();
-                            Patcher.Dispatcher.Add(() => actionDispSw.Start());
+                            Patcher.Dispatcher.Add(new Action<object[]>((args) => actionDispSw.Start()));
 #endif
                             action(manager);
 #if Debug
-                            Patcher.Dispatcher.Add(() => times[$"Dispatcher {manager.GetType().Name}"] = actionDispSw.ElapsedTicks);
+                            Patcher.Dispatcher.Add(new Action<object[]>((args) => times[$"Dispatcher {manager.GetType().Name}"] = actionDispSw.ElapsedTicks));
 #endif
                         }
 #if Debug
@@ -188,7 +211,16 @@ namespace ParallelBooster.Patches
 #endif
                     });
                     task.Run();
-
+#if Debug
+                    dipsSw.Start();
+#endif
+                    while (!task.hasEnded || !Patcher.Dispatcher.NothingExecute)
+                    {
+                        Patcher.Dispatcher.Execute();
+                    }
+#if Debug
+                    dipsSw.Stop();
+#endif
 #if Debug
                     var npSw = Stopwatch.StartNew();
 #endif
@@ -196,19 +228,7 @@ namespace ParallelBooster.Patches
                         action(manager);
 #if Debug
                     npSw.Stop();
-                    Logger.Debug($"Not parallized duration {npSw.ElapsedTicks}");
 #endif
-
-                    while (!task.hasEnded || !Patcher.Dispatcher.NothingExecute)
-                    {
-#if Debug
-                        dipsSw.Start();
-#endif
-                        Patcher.Dispatcher.Execute();
-#if Debug
-                        dipsSw.Stop();
-#endif
-                    }
 #else
                     for (int num18 = 0; num18 < ___m_renderables.m_size; num18++)
                         action(___m_renderables.m_buffer[num18]);
@@ -216,6 +236,7 @@ namespace ParallelBooster.Patches
 #if Debug
                     allSw.Stop();
                     Logger.Debug($"Dispatcher: Duration={dipsSw.ElapsedTicks}; {nameof(Patcher.Dispatcher.Executed)}={Patcher.Dispatcher.Executed}; {nameof(Patcher.Dispatcher.Count)}={Patcher.Dispatcher.Count}");
+                    Logger.Debug($"Not parallized duration {npSw.ElapsedTicks}");
                     Logger.Debug(SWResult("RenderManager.LateUpdate", allSw.ElapsedTicks, allSw.ElapsedTicks));
                     Logger.Debug(string.Join("", times.Select(t => SWResult(t.Key, t.Value, allSw.ElapsedTicks)).ToArray()));
 #endif

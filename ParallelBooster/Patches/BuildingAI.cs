@@ -12,6 +12,36 @@ namespace ParallelBooster.Patches
 {
     public static class BuildingAIPatch
     {
+        public static Action<object[]> RenderMeshesMethod { get; } = new Action<object[]>((args) =>
+        {
+            Building data = (Building)args[3];
+            RenderManager.Instance instance = (RenderManager.Instance)args[5];
+            ((BuildingAI)args[0]).RenderMeshes((RenderManager.CameraInfo)args[1], (ushort)args[2], ref data, (int)args[4], ref instance);
+        });
+        public static Action<object[]> RenderMeshMethod { get; } = new Action<object[]>((args) =>
+        {
+            RenderManager.Instance instance = (RenderManager.Instance)args[4];
+            BuildingAI.RenderMesh((RenderManager.CameraInfo)args[0], (BuildingInfo)args[1], (BuildingInfoBase)args[2], (Matrix4x4)args[3], ref instance);
+        });
+        public static Action<object[]> RenderCollapseEffectMethod { get; } = new Action<object[]>((args) =>
+        {
+            Building data = (Building)args[3];
+            ((CommonBuildingAI)args[0]).RenderCollapseEffect((RenderManager.CameraInfo)args[1], (ushort)args[2], ref data, (float)args[4]);
+        });
+        public static Action<object[]> RenderGarbageBinsMethod { get; } = new Action<object[]>((args) =>
+        {
+            Building data = (Building)args[3];
+            RenderManager.Instance instance = (RenderManager.Instance)args[5];
+            ((CommonBuildingAI)args[0]).RenderGarbageBins((RenderManager.CameraInfo)args[1], (ushort)args[2], ref data, (int)args[4], ref instance);
+        });
+        public static Action<object[]> RenderFireEffectMethod { get; } = new Action<object[]>((args) =>
+        {
+            Building data = (Building)args[3];
+            RenderManager.Instance instance = (RenderManager.Instance)args[4];
+            ((CommonBuildingAI)args[0]).RenderFireEffect((RenderManager.CameraInfo)args[1], (ushort)args[2], ref data, instance.m_dataVector0.x);
+            RenderFireEffectPropsReverse((CommonBuildingAI)args[0], (RenderManager.CameraInfo)args[1], (ushort)args[2], ref data, ref instance, (float)(int)data.m_fireIntensity * 0.003921569f, instance.m_dataVector0.x, true, true);
+        });
+
         public static void Patch(Harmony harmony)
         {
             var originalRenderInstanceBuildingAIMethod = AccessTools.Method(typeof(BuildingAI), nameof(BuildingAI.RenderInstance));
@@ -58,9 +88,7 @@ namespace ParallelBooster.Patches
         public static bool RenderInstanceBuildingAIPrefix(BuildingAI __instance, RenderManager.CameraInfo cameraInfo, ushort buildingID, ref Building data, int layerMask, ref RenderManager.Instance instance)
         {
 #if UseTask
-            var localData = data;
-            var localInstance = instance;
-            Patcher.Dispatcher.Add(() => __instance.RenderMeshes(cameraInfo, buildingID, ref localData, layerMask, ref localInstance));
+            Patcher.Dispatcher.Add(RenderMeshesMethod, __instance, cameraInfo, buildingID, data, layerMask, instance);
 #else
             __instance.RenderMeshes(cameraInfo, buildingID, ref data, layerMask, ref instance);
 #endif
@@ -72,9 +100,7 @@ namespace ParallelBooster.Patches
         public static bool RenderInstanceCableCarPylonAIPrefix(CableCarPylonAI __instance, RenderManager.CameraInfo cameraInfo, ushort buildingID, ref Building data, int layerMask, ref RenderManager.Instance instance)
         {
 #if UseTask
-            var localData = data;
-            var localInstance = instance;
-            Patcher.Dispatcher.Add(() => __instance.RenderMeshes(cameraInfo, buildingID, ref localData, layerMask, ref localInstance));
+            Patcher.Dispatcher.Add(RenderMeshesMethod,__instance, cameraInfo, buildingID, data, layerMask, instance );
 #else
             __instance.RenderMeshes(cameraInfo, buildingID, ref data, layerMask, ref instance);
 #endif
@@ -86,9 +112,7 @@ namespace ParallelBooster.Patches
         public static bool RenderInstancePowerPoleAIPrefix(PowerPoleAI __instance, RenderManager.CameraInfo cameraInfo, ushort buildingID, ref Building data, int layerMask, ref RenderManager.Instance instance)
         {
 #if UseTask
-            var localData = data;
-            var localInstance = instance;
-            Patcher.Dispatcher.Add(() => __instance.RenderMeshes(cameraInfo, buildingID, ref localData, layerMask, ref localInstance));
+            Patcher.Dispatcher.Add(RenderMeshesMethod, __instance, cameraInfo, buildingID, data, layerMask, instance );
 #else
             __instance.RenderMeshes(cameraInfo, buildingID, ref data, layerMask, ref instance);
 #endif
@@ -141,9 +165,7 @@ namespace ParallelBooster.Patches
                             instance.m_dataMatrix1.SetTRS(instance.m_position, instance.m_rotation, Vector3.one);
                             instance.m_dataVector0.y = y;
 #if UseTask
-                            var localData = data;
-                            var localInstance = instance;
-                            Patcher.Dispatcher.Add(() => __instance.RenderMeshes(cameraInfo, buildingID, ref localData, layerMask, ref localInstance));
+                            Patcher.Dispatcher.Add(RenderMeshesMethod, __instance, cameraInfo, buildingID, data, layerMask, instance );
 #else
 							__instance.RenderMeshes(cameraInfo, buildingID, ref data, layerMask, ref instance);
 #endif
@@ -189,8 +211,7 @@ namespace ParallelBooster.Patches
                             Matrix4x4 matrix = Matrix4x4.TRS(new Vector3(vector.x, 0f, vector.z + num12), q, new Vector3(x, num9, z));
                             collapsedInfo.m_rendered = true;
 #if UseTask
-                            var localInstance = instance;
-                            Patcher.Dispatcher.Add(() => BuildingAI.RenderMesh(cameraInfo, __instance.m_info, collapsedInfo, matrix, ref localInstance));
+                            Patcher.Dispatcher.Add(RenderMeshMethod, cameraInfo, __instance.m_info, collapsedInfo, matrix, instance);
 #else
 							BuildingAI.RenderMesh(cameraInfo, __instance.m_info, collapsedInfo, matrix, ref instance);
 #endif
@@ -199,8 +220,7 @@ namespace ParallelBooster.Patches
                     if (Singleton<InfoManager>.instance.CurrentMode == InfoManager.InfoMode.None)
                     {
 #if UseTask
-                        var localData = data;
-                        Patcher.Dispatcher.Add(() => __instance.RenderCollapseEffect(cameraInfo, buildingID, ref localData, num3));
+                        Patcher.Dispatcher.Add(RenderCollapseEffectMethod, __instance, cameraInfo, buildingID, data, num3);
 #else
 							__instance.RenderCollapseEffect(cameraInfo, buildingID, ref data, num3);
 #endif
@@ -275,9 +295,7 @@ namespace ParallelBooster.Patches
                         instance.m_dataVector0.y = 0f - num24;
                         instance.m_dataVector0.x = num22 * num18;
 #if UseTask
-                        var localData = data;
-                        var localInstance = instance;
-                        Patcher.Dispatcher.Add(() => buildingInfo.m_buildingAI.RenderMeshes(cameraInfo, buildingID, ref localData, layerMask, ref localInstance));
+                        Patcher.Dispatcher.Add(RenderMeshesMethod, buildingInfo.m_buildingAI, cameraInfo, buildingID, data, layerMask, instance);
 #else
 							buildingInfo.m_buildingAI.RenderMeshes(cameraInfo, buildingID, ref data, layerMask, ref instance);
 #endif
@@ -316,9 +334,7 @@ namespace ParallelBooster.Patches
                     instance.m_dataVector0.y = 0f - num21;
                     instance.m_dataVector0.x = num22 * num18;
 #if UseTask
-                    var localData = data;
-                    var localInstance = instance;
-                    Patcher.Dispatcher.Add(() => buildingInfo2.m_buildingAI.RenderMeshes(cameraInfo, buildingID, ref localData, layerMask, ref localInstance));
+                    Patcher.Dispatcher.Add(RenderMeshesMethod, buildingInfo2.m_buildingAI, cameraInfo, buildingID, data, layerMask, instance);
 #else
 				buildingInfo2.m_buildingAI.RenderMeshes(cameraInfo, buildingID, ref data, layerMask, ref instance);
 #endif
@@ -375,8 +391,7 @@ namespace ParallelBooster.Patches
                         instance.m_dataVector0.y = num22;
                         construction.m_rendered = true;
 #if UseTask
-                        var localInstance = instance;
-                        Patcher.Dispatcher.Add(() => BuildingAI.RenderMesh(cameraInfo, buildingInfo2, construction, matrix2, ref localInstance));
+                        Patcher.Dispatcher.Add(RenderMeshMethod, cameraInfo, buildingInfo2, construction, matrix2, instance );
 #else
 						BuildingAI.RenderMesh(cameraInfo, buildingInfo2, construction, matrix2, ref instance);
 #endif
@@ -389,9 +404,7 @@ namespace ParallelBooster.Patches
             if (!__instance.m_hideGarbageBins)
             {
 #if UseTask
-                var localData = data;
-                var localInstance = instance;
-                Patcher.Dispatcher.Add(() => __instance.RenderGarbageBins(cameraInfo, buildingID, ref localData, layerMask, ref localInstance));
+                Patcher.Dispatcher.Add(RenderGarbageBinsMethod,  __instance, cameraInfo, buildingID, data, layerMask, instance);
 #else
 				__instance.RenderGarbageBins(cameraInfo, buildingID, ref data, layerMask, ref instance);
 #endif
@@ -419,17 +432,10 @@ namespace ParallelBooster.Patches
             if (data.m_fireIntensity != 0 && Singleton<InfoManager>.instance.CurrentMode == InfoManager.InfoMode.None)
             {
 #if UseTask
-                var localData = data;
-                var localInstance = instance;
-                var action = new Action(() =>
-                {
-                    __instance.RenderFireEffect(cameraInfo, buildingID, ref localData, localInstance.m_dataVector0.x);
-                    RenderFireEffectPropsReverse(__instance, cameraInfo, buildingID, ref localData, ref localInstance, (float)(int)localData.m_fireIntensity * 0.003921569f, localInstance.m_dataVector0.x, true, true);
-                });
-                Patcher.Dispatcher.Add(action);
+                Patcher.Dispatcher.Add(RenderFireEffectMethod, __instance, cameraInfo, buildingID, data, instance);
 #else
 				__instance.RenderFireEffect(cameraInfo, buildingID, ref data, instance.m_dataVector0.x);
-                RenderFireEffectPropsMethod.Invoke(__instance, new object[] { cameraInfo, buildingID, data, instance, (float)(int)data.m_fireIntensity * 0.003921569f, instance.m_dataVector0.x, true, true });
+                RenderFireEffectPropsReverse(__instance, cameraInfo, buildingID, ref data, ref instance, (float)(int)data.m_fireIntensity * 0.003921569f, instance.m_dataVector0.x, true, true);
 #endif
 
             }
@@ -491,7 +497,7 @@ namespace ParallelBooster.Patches
                 {
                     continue;
                 }
-                InstanceID propRenderID = GetPropRenderIDReverse(__instance,  buildingID, 0, ref data);
+                InstanceID propRenderID = GetPropRenderIDReverse(__instance, buildingID, 0, ref data);
                 Vector4 dataVector = instance.m_dataVector3;
                 if (!prop.m_fixedHeight && (!__instance.m_info.m_colorizeEverything || finalProp.m_isDecal))
                 {
@@ -504,9 +510,7 @@ namespace ParallelBooster.Patches
                         Singleton<TerrainManager>.instance.GetWaterMapping(data.m_position, out _HeightMap, out _HeightMapping, out _SurfaceMapping);
                     }
 #if UseTask
-                    var localData = data;
-                    var localInstance = instance;
-                    Patcher.Dispatcher.Add(() => PropInstance.RenderInstance(cameraInfo, finalProp, propRenderID, vector, scale, localData.m_angle + prop.m_radAngle, color, dataVector, (localData.m_flags & Building.Flags.Active) != 0, localInstance.m_dataTexture0, localInstance.m_dataVector1, localInstance.m_dataVector2, _HeightMap, _HeightMapping, _SurfaceMapping));
+                    Patcher.Dispatcher.Add(Delegates.PropsRenderInstanceMethod1, cameraInfo, finalProp, propRenderID, vector, scale, data.m_angle + prop.m_radAngle, color, dataVector, (data.m_flags & Building.Flags.Active) != 0, instance.m_dataTexture0, instance.m_dataVector1, instance.m_dataVector2, _HeightMap, _HeightMapping, _SurfaceMapping);
 #else
                     PropInstance.RenderInstance(cameraInfo, finalProp, propRenderID, vector, scale, data.m_angle + prop.m_radAngle, color, dataVector, (data.m_flags & Building.Flags.Active) != 0, instance.m_dataTexture0, instance.m_dataVector1, instance.m_dataVector2, _HeightMap, _HeightMapping, _SurfaceMapping);
 #endif
@@ -514,9 +518,7 @@ namespace ParallelBooster.Patches
                 else if (finalProp.m_requireHeightMap)
                 {
 #if UseTask
-                    var localData = data;
-                    var localInstance = instance;
-                    Patcher.Dispatcher.Add(() => PropInstance.RenderInstance(cameraInfo, finalProp, propRenderID, vector, scale, localData.m_angle + prop.m_radAngle, color, dataVector, (localData.m_flags & Building.Flags.Active) != 0, localInstance.m_dataTexture0, localInstance.m_dataVector1, localInstance.m_dataVector2));
+                    Patcher.Dispatcher.Add(Delegates.PropsRenderInstanceMethod2, cameraInfo, finalProp, propRenderID, vector, scale, data.m_angle + prop.m_radAngle, color, dataVector, (data.m_flags & Building.Flags.Active) != 0, instance.m_dataTexture0, instance.m_dataVector1, instance.m_dataVector2);
 #else
                     PropInstance.RenderInstance(cameraInfo, finalProp, propRenderID, vector, scale, data.m_angle + prop.m_radAngle, color, dataVector, (data.m_flags & Building.Flags.Active) != 0, instance.m_dataTexture0, instance.m_dataVector1, instance.m_dataVector2);
 #endif
@@ -524,8 +526,7 @@ namespace ParallelBooster.Patches
                 else
                 {
 #if UseTask
-                    var localData = data;
-                    Patcher.Dispatcher.Add(() => PropInstance.RenderInstance(cameraInfo, finalProp, propRenderID, vector, scale, localData.m_angle + prop.m_radAngle, color, dataVector, (localData.m_flags & Building.Flags.Active) != 0));
+                    Patcher.Dispatcher.Add(Delegates.PropsRenderInstanceMethod3, cameraInfo, finalProp, propRenderID, vector, scale, data.m_angle + prop.m_radAngle, color, dataVector, (data.m_flags & Building.Flags.Active) != 0 );
 #else
 				                    PropInstance.RenderInstance(cameraInfo, finalProp, propRenderID, vector, scale, data.m_angle + prop.m_radAngle, color, dataVector, (data.m_flags & Building.Flags.Active) != 0);
 #endif
@@ -642,9 +643,7 @@ namespace ParallelBooster.Patches
                             Singleton<TerrainManager>.instance.GetWaterMapping(data.m_position, out _HeightMap, out _HeightMapping, out _SurfaceMapping);
                         }
 #if UseTask
-                        var localData = data;
-                        var localInstance = instance;
-                        Patcher.Dispatcher.Add(() => PropInstance.RenderInstance(cameraInfo, finalProp, propRenderID2, vector, num2, localData.m_angle + prop.m_radAngle, color, dataVector, isActive, localInstance.m_dataTexture0, localInstance.m_dataVector1, localInstance.m_dataVector2, _HeightMap, _HeightMapping, _SurfaceMapping));
+                        Patcher.Dispatcher.Add(Delegates.PropsRenderInstanceMethod1, cameraInfo, finalProp, propRenderID2, vector, num2, data.m_angle + prop.m_radAngle, color, dataVector, isActive, instance.m_dataTexture0, instance.m_dataVector1, instance.m_dataVector2, _HeightMap, _HeightMapping, _SurfaceMapping);
 #else
 PropInstance.RenderInstance(cameraInfo, finalProp, propRenderID2, vector, num2, data.m_angle + prop.m_radAngle, color, dataVector, isActive, instance.m_dataTexture0, instance.m_dataVector1, instance.m_dataVector2, _HeightMap, _HeightMapping, _SurfaceMapping);
 #endif
@@ -652,9 +651,7 @@ PropInstance.RenderInstance(cameraInfo, finalProp, propRenderID2, vector, num2, 
                     else if (finalProp.m_requireHeightMap)
                     {
 #if UseTask
-                        var localData = data;
-                        var localInstance = instance;
-                        Patcher.Dispatcher.Add(() => PropInstance.RenderInstance(cameraInfo, finalProp, propRenderID2, vector, num2, localData.m_angle + prop.m_radAngle, color, dataVector, isActive, localInstance.m_dataTexture0, localInstance.m_dataVector1, localInstance.m_dataVector2));
+                        Patcher.Dispatcher.Add(Delegates.PropsRenderInstanceMethod2, cameraInfo, finalProp, propRenderID2, vector, num2, data.m_angle + prop.m_radAngle, color, dataVector, isActive, instance.m_dataTexture0, instance.m_dataVector1, instance.m_dataVector2);
 #else
                         PropInstance.RenderInstance(cameraInfo, finalProp, propRenderID2, vector, num2, data.m_angle + prop.m_radAngle, color, dataVector, isActive, instance.m_dataTexture0, instance.m_dataVector1, instance.m_dataVector2);
 #endif
@@ -662,9 +659,7 @@ PropInstance.RenderInstance(cameraInfo, finalProp, propRenderID2, vector, num2, 
                     else
                     {
 #if UseTask
-                        var localData = data;
-                        var localInstance = instance;
-                        Patcher.Dispatcher.Add(() => PropInstance.RenderInstance(cameraInfo, finalProp, propRenderID2, vector, num2, localData.m_angle + prop.m_radAngle, color, dataVector, isActive));
+                        Patcher.Dispatcher.Add(Delegates.PropsRenderInstanceMethod3, cameraInfo, finalProp, propRenderID2, vector, num2, data.m_angle + prop.m_radAngle, color, dataVector, isActive);
 #else
                         PropInstance.RenderInstance(cameraInfo, finalProp, propRenderID2, vector, num2, data.m_angle + prop.m_radAngle, color, dataVector, isActive);
 #endif
@@ -692,9 +687,7 @@ PropInstance.RenderInstance(cameraInfo, finalProp, propRenderID2, vector, num2, 
                             dataVector2.z = 0f;
                         }
 #if UseTask
-                        var localData = data;
-                        var localInstance = instance;
-                        Patcher.Dispatcher.Add(() => TreeInstance.RenderInstance(cameraInfo, finalTree, position3, scale, brightness, dataVector2));
+                        Patcher.Dispatcher.Add(Delegates.TreeRenderInstanceMethod, cameraInfo, finalTree, position3, scale, brightness, dataVector2);
 #else
                         TreeInstance.RenderInstance(cameraInfo, finalTree, position3, scale, brightness, dataVector2);
 #endif

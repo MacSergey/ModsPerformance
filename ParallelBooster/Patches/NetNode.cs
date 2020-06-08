@@ -10,6 +10,41 @@ namespace ParallelBooster.Patches
 {
     public static class NetNodePatch
     {
+        private delegate void ExtractedDelegate(NetNode instance, CameraInfo cameraInfo, ushort nodeID, NetInfo info, int iter, NetNode.Flags flags, uint instanceIndex, Instance data);
+
+        private static Action<object[]> RenderInstanceJunctionIfIfExtractedMethod { get; } = new Action<object[]>((args) =>
+        {
+            NetNode __instance = (NetNode)args[0];
+            uint instanceIndex = (uint)args[6];
+            Instance data = (Instance)args[7];
+
+            RenderInstanceJunctionIfIfExtracted(ref __instance, (CameraInfo)args[1], (ushort)args[2], (NetInfo)args[3], (int)args[4], (NetNode.Flags)args[5], ref instanceIndex, ref data);
+        });
+        private static Action<object[]> RenderInstanceJunctionIfElseExtractedMethod { get; } = new Action<object[]>((args) =>
+        {
+            NetNode __instance = (NetNode)args[0];
+            uint instanceIndex = (uint)args[6];
+            Instance data = (Instance)args[7];
+
+            RenderInstanceJunctionIfElseExtracted(ref __instance, (CameraInfo)args[1], (ushort)args[2], (NetInfo)args[3], (int)args[4], (NetNode.Flags)args[5], ref instanceIndex, ref data);
+        });
+        private static Action<object[]> RenderInstanceEndIfExtractedMethod { get; } = new Action<object[]>((args) =>
+        {
+            NetNode __instance = (NetNode)args[0];
+            uint instanceIndex = (uint)args[6];
+            Instance data = (Instance)args[7];
+
+            RenderInstanceEndIfExtracted(ref __instance, (CameraInfo)args[1], (ushort)args[2], (NetInfo)args[3], (int)args[4], (NetNode.Flags)args[5], ref instanceIndex, ref data);
+        });
+        private static Action<object[]> RenderInstanceBendIfExtractedMethod { get; } = new Action<object[]>((args) =>
+        {
+            NetNode __instance = (NetNode)args[0];
+            uint instanceIndex = (uint)args[6];
+            Instance data = (Instance)args[7];
+
+            RenderInstanceBendIfExtracted(ref __instance, (CameraInfo)args[1], (ushort)args[2], (NetInfo)args[3], (int)args[4], (NetNode.Flags)args[5], ref instanceIndex, ref data);
+        });
+
         public static List<CodeInstruction> MainIfBlockFind { get; } = new List<CodeInstruction>
             {
                 new CodeInstruction(OpCodes.Ldarg_S, 7),
@@ -102,7 +137,7 @@ namespace ParallelBooster.Patches
                 Logger.AddDebugInstructions(newInstructions, nameof(NetNodePatch), nameof(RenderInstancePatch));
 #endif
 #if Debug && IL
-                Logger.Debug(nameof(NetNodePatch), nameof(RenderInstancePatch), newInstructions);
+            Logger.Debug(nameof(NetNodePatch), nameof(RenderInstancePatch), newInstructions);
 #endif
             return newInstructions;
         }
@@ -113,7 +148,7 @@ namespace ParallelBooster.Patches
                 Logger.Start(nameof(NetNodePatch), nameof(AddToDispatcherJunctionIfIf));
 #endif
 #if UseTask
-            Patcher.Dispatcher.Add(() => RenderInstanceJunctionIfIfExtracted(ref instance, cameraInfo, nodeID, info, iter, flags, ref instanceIndex, ref data));
+            Patcher.Dispatcher.Add(RenderInstanceJunctionIfIfExtractedMethod, instance, cameraInfo, nodeID, info, iter, flags, instanceIndex, data );
 #else
                 RenderInstanceJunctionIfIfExtracted(ref instance, cameraInfo, nodeID, info, iter, flags, ref instanceIndex, ref data);
 #endif
@@ -124,7 +159,7 @@ namespace ParallelBooster.Patches
                 Logger.Start(nameof(NetNodePatch), nameof(AddToDispatcherJunctionIfElse));
 #endif
 #if UseTask
-            Patcher.Dispatcher.Add(() => RenderInstanceJunctionIfElseExtracted(ref instance, cameraInfo, nodeID, info, iter, flags, ref instanceIndex, ref data));
+            Patcher.Dispatcher.Add(RenderInstanceJunctionIfElseExtractedMethod, instance, cameraInfo, nodeID, info, iter, flags, instanceIndex, data);
 #else
                 RenderInstanceJunctionIfElseExtracted(ref instance, cameraInfo, nodeID, info, iter, flags, ref instanceIndex, ref data);
 #endif
@@ -135,7 +170,7 @@ namespace ParallelBooster.Patches
                 Logger.Start(nameof(NetNodePatch), nameof(AddToDispatcherEndIf));
 #endif
 #if UseTask
-            Patcher.Dispatcher.Add(() => RenderInstanceEndIfExtracted(ref instance, cameraInfo, nodeID, info, iter, flags, ref instanceIndex, ref data));
+            Patcher.Dispatcher.Add(RenderInstanceEndIfExtractedMethod,instance, cameraInfo, nodeID, info, iter, flags, instanceIndex, data);
 #else
                 RenderInstanceEndIfExtracted(ref instance, cameraInfo, nodeID, info, iter, flags, ref instanceIndex, ref data);
 #endif
@@ -146,7 +181,7 @@ namespace ParallelBooster.Patches
                 Logger.Start(nameof(NetNodePatch), nameof(AddToDispatcherBendIf));
 #endif
 #if UseTask
-            Patcher.Dispatcher.Add(() => RenderInstanceBendIfExtracted(ref instance, cameraInfo, nodeID, info, iter, flags, ref instanceIndex, ref data));
+            Patcher.Dispatcher.Add(RenderInstanceBendIfExtractedMethod, instance, cameraInfo, nodeID, info, iter, flags, instanceIndex, data);
 #else
                 RenderInstanceBendIfExtracted(ref instance, cameraInfo, nodeID, info, iter, flags, ref instanceIndex, ref data);
 #endif
@@ -179,7 +214,7 @@ namespace ParallelBooster.Patches
                     Logger.AddDebugInstructions(newInstructions, nameof(NetNodePatch), nameof(NetNodePatch.RenderInstanceJunctionIfIfExtracted));
 #endif
 #if Debug && IL
-                    Logger.Debug(nameof(NetNodePatch), nameof(NetNodePatch.RenderInstanceJunctionIfIfExtracted), newInstructions);
+                Logger.Debug(nameof(NetNodePatch), nameof(NetNodePatch.RenderInstanceJunctionIfIfExtracted), newInstructions);
 #endif
                 return newInstructions;
             }
@@ -214,7 +249,7 @@ namespace ParallelBooster.Patches
                     Logger.AddDebugInstructions(newInstructions, nameof(NetNodePatch), nameof(NetNodePatch.RenderInstanceJunctionIfElseExtracted));
 #endif
 #if Debug && IL
-                    Logger.Debug(nameof(NetNodePatch), nameof(NetNodePatch.RenderInstanceJunctionIfElseExtracted), newInstructions);
+                Logger.Debug(nameof(NetNodePatch), nameof(NetNodePatch.RenderInstanceJunctionIfElseExtracted), newInstructions);
 #endif
                 return newInstructions;
             }
@@ -247,7 +282,7 @@ namespace ParallelBooster.Patches
                     Logger.AddDebugInstructions(newInstructions, nameof(NetNodePatch), nameof(NetNodePatch.RenderInstanceEndIfExtracted));
 #endif
 #if Debug && IL
-                    Logger.Debug(nameof(NetNodePatch), nameof(NetNodePatch.RenderInstanceEndIfExtracted), newInstructions);
+                Logger.Debug(nameof(NetNodePatch), nameof(NetNodePatch.RenderInstanceEndIfExtracted), newInstructions);
 #endif
                 return newInstructions;
             }
@@ -279,7 +314,7 @@ namespace ParallelBooster.Patches
                     Logger.AddDebugInstructions(newInstructions, nameof(NetNodePatch), nameof(NetNodePatch.RenderInstanceBendIfExtracted));
 #endif
 #if Debug && IL
-                    Logger.Debug(nameof(NetNodePatch), nameof(NetNodePatch.RenderInstanceBendIfExtracted), newInstructions);
+                Logger.Debug(nameof(NetNodePatch), nameof(NetNodePatch.RenderInstanceBendIfExtracted), newInstructions);
 #endif
                 return newInstructions;
             }

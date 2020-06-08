@@ -21,11 +21,11 @@ namespace ParallelBooster.Patches
         {
             var originalMethod = AccessTools.Method(typeof(NetManager), "EndRenderingImpl");
 
-            var extractedMethod = AccessTools.Method(typeof(NetManagerPatch), nameof(EndRenderingImplExtracted));
-            Patcher.PatchReverse(harmony, originalMethod, extractedMethod);
+            //var extractedMethod = AccessTools.Method(typeof(NetManagerPatch), nameof(EndRenderingImplExtracted));
+            //Patcher.PatchReverse(harmony, originalMethod, extractedMethod);
 
-            var transpilerMethod = AccessTools.Method(typeof(NetManagerPatch), nameof(EndRenderingImplPatch));
-            Patcher.PatchTranspiler(harmony, originalMethod, transpilerMethod);
+            //var transpilerMethod = AccessTools.Method(typeof(NetManagerPatch), nameof(EndRenderingImplPatch));
+            //Patcher.PatchTranspiler(harmony, originalMethod, transpilerMethod);
 
             var prefixMethod = AccessTools.Method(typeof(NetManagerPatch), nameof(EndRenderingImplPrefix));
             Patcher.PatchPrefix(harmony, originalMethod, prefixMethod);
@@ -198,58 +198,59 @@ namespace ParallelBooster.Patches
             }
             __instance.m_lastVisibleRoadNameSegment = __instance.m_visibleRoadNameSegment;
             __instance.m_lastVisibleTrafficLightNode = __instance.m_visibleTrafficLightNode;
-            int num11 = PrefabCollection<NetInfo>.PrefabCount();
-
-            var action = new Action(() =>
-            {
-                for (int n = 0; n < num11; n++)
-                {
-                    NetInfo prefab = PrefabCollection<NetInfo>.GetPrefab((uint)n);
-                    if ((object)prefab == null)
-                    {
-                        continue;
-                    }
-                    if (prefab.m_segments != null)
-                    {
-                        for (int num12 = 0; num12 < prefab.m_segments.Length; num12++)
-                        {
-                            NetInfo.Segment segment = prefab.m_segments[num12];
-                            NetInfo.LodValue combinedLod = segment.m_combinedLod;
-                            if (combinedLod != null && combinedLod.m_lodCount != 0)
-                            {
-                                NetSegment.RenderLod(cameraInfo, combinedLod);
-                            }
-                        }
-                    }
-                    if (prefab.m_nodes == null)
-                    {
-                        continue;
-                    }
-                    for (int num13 = 0; num13 < prefab.m_nodes.Length; num13++)
-                    {
-                        NetInfo.Node node = prefab.m_nodes[num13];
-                        NetInfo.LodValue combinedLod2 = node.m_combinedLod;
-                        if (combinedLod2 != null && combinedLod2.m_lodCount != 0)
-                        {
-                            if (node.m_directConnect)
-                            {
-                                NetSegment.RenderLod(cameraInfo, combinedLod2);
-                            }
-                            else
-                            {
-                                NetNode.RenderLod(cameraInfo, combinedLod2);
-                            }
-                        }
-                    }
-                }
-            });
 #if UseTask
-            Patcher.Dispatcher.Add(action);
+            Patcher.Dispatcher.Add(EndRenderingImplExtracted2, cameraInfo);
 #else
-            action.Invoke();
+            EndRenderingImplExtracted2.Invoke(cameraInfo);
 #endif
 
             return false;
         }
+        private static Action<object[]> EndRenderingImplExtracted2 { get; } = new Action<object[]>((args) =>
+        {
+            RenderManager.CameraInfo cameraInfo = (RenderManager.CameraInfo)args[0];
+
+            int num11 = PrefabCollection<NetInfo>.PrefabCount();
+            for (int n = 0; n < num11; n++)
+            {
+                NetInfo prefab = PrefabCollection<NetInfo>.GetPrefab((uint)n);
+                if ((object)prefab == null)
+                {
+                    continue;
+                }
+                if (prefab.m_segments != null)
+                {
+                    for (int num12 = 0; num12 < prefab.m_segments.Length; num12++)
+                    {
+                        NetInfo.Segment segment = prefab.m_segments[num12];
+                        NetInfo.LodValue combinedLod = segment.m_combinedLod;
+                        if (combinedLod != null && combinedLod.m_lodCount != 0)
+                        {
+                            NetSegment.RenderLod(cameraInfo, combinedLod);
+                        }
+                    }
+                }
+                if (prefab.m_nodes == null)
+                {
+                    continue;
+                }
+                for (int num13 = 0; num13 < prefab.m_nodes.Length; num13++)
+                {
+                    NetInfo.Node node = prefab.m_nodes[num13];
+                    NetInfo.LodValue combinedLod2 = node.m_combinedLod;
+                    if (combinedLod2 != null && combinedLod2.m_lodCount != 0)
+                    {
+                        if (node.m_directConnect)
+                        {
+                            NetSegment.RenderLod(cameraInfo, combinedLod2);
+                        }
+                        else
+                        {
+                            NetNode.RenderLod(cameraInfo, combinedLod2);
+                        }
+                    }
+                }
+            }
+        });
     }
 }

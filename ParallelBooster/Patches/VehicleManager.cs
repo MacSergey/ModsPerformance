@@ -174,111 +174,114 @@ namespace ParallelBooster.Patches
                 }
                 ___m_renderBuffer[num18] = num19;
             }
-
-            var action = new Action(() =>
-            {
-                int num26 = ___m_renderBuffer2.Length;
-                for (int num27 = 0; num27 < num26; num27++)
-                {
-                    ulong num28 = ___m_renderBuffer2[num27];
-                    if (num28 == 0)
-                    {
-                        continue;
-                    }
-                    for (int num29 = 0; num29 < 64; num29++)
-                    {
-                        ulong num30 = (ulong)(1L << num29);
-                        if ((num28 & num30) == 0)
-                        {
-                            continue;
-                        }
-                        ushort num31 = (ushort)((num27 << 6) | num29);
-                        if (!__instance.m_parkedVehicles.m_buffer[num31].RenderInstance(cameraInfo, num31))
-                        {
-                            num28 &= ~num30;
-                        }
-                        ushort nextGridParked = __instance.m_parkedVehicles.m_buffer[num31].m_nextGridParked;
-                        int num32 = 0;
-                        while (nextGridParked != 0)
-                        {
-                            int num33 = nextGridParked >> 6;
-                            num30 = (ulong)(1L << (int)nextGridParked);
-                            if (num33 == num27)
-                            {
-                                if ((num28 & num30) != 0)
-                                {
-                                    break;
-                                }
-                                num28 |= num30;
-                            }
-                            else
-                            {
-                                ulong num34 = ___m_renderBuffer2[num33];
-                                if ((num34 & num30) != 0)
-                                {
-                                    break;
-                                }
-                                ___m_renderBuffer2[num33] = (num34 | num30);
-                            }
-                            if (nextGridParked > num31)
-                            {
-                                break;
-                            }
-                            nextGridParked = __instance.m_parkedVehicles.m_buffer[nextGridParked].m_nextGridParked;
-                            if (++num32 > 32768)
-                            {
-                                CODebugBase<LogChannel>.Error(LogChannel.Core, "Invalid list detected!\n" + Environment.StackTrace);
-                                break;
-                            }
-                        }
-                    }
-                    ___m_renderBuffer2[num27] = num28;
-                }
-
-
-                int num35 = PrefabCollection<VehicleInfo>.PrefabCount();
-                for (int num36 = 0; num36 < num35; num36++)
-                {
-                    VehicleInfo prefab = PrefabCollection<VehicleInfo>.GetPrefab((uint)num36);
-                    if ((object)prefab == null)
-                    {
-                        continue;
-                    }
-                    if (prefab.m_lodCount != 0)
-                    {
-                        Vehicle.RenderLod(cameraInfo, prefab);
-                    }
-                    if (prefab.m_undergroundLodCount != 0)
-                    {
-                        Vehicle.RenderUndergroundLod(cameraInfo, prefab);
-                    }
-                    if (prefab.m_subMeshes == null)
-                    {
-                        continue;
-                    }
-                    for (int num37 = 0; num37 < prefab.m_subMeshes.Length; num37++)
-                    {
-                        VehicleInfoBase subInfo = prefab.m_subMeshes[num37].m_subInfo;
-                        if (subInfo != null)
-                        {
-                            if (subInfo.m_lodCount != 0)
-                            {
-                                Vehicle.RenderLod(cameraInfo, subInfo);
-                            }
-                            if (subInfo.m_undergroundLodCount != 0)
-                            {
-                                Vehicle.RenderUndergroundLod(cameraInfo, subInfo);
-                            }
-                        }
-                    }
-                }
-            });
 #if UseTask
-            Patcher.Dispatcher.Add(action);
+            Patcher.Dispatcher.Add(EndRenderingImplExtracted, __instance, cameraInfo, ___m_renderBuffer2);
 #else
-            action.Invoke();
+            EndRenderingImplExtracted.Invoke(__instance, cameraInfo, ___m_renderBuffer2);
 #endif
             return false;
         }
+        private static Action<object[]> EndRenderingImplExtracted { get; } = new Action<object[]>((args) =>
+        {
+            VehicleManager __instance = (VehicleManager)args[0];
+            RenderManager.CameraInfo cameraInfo = (RenderManager.CameraInfo)args[1];
+            ulong[] ___m_renderBuffer2 = (ulong[])args[2];
+
+            int num26 = ___m_renderBuffer2.Length;
+            for (int num27 = 0; num27 < num26; num27++)
+            {
+                ulong num28 = ___m_renderBuffer2[num27];
+                if (num28 == 0)
+                {
+                    continue;
+                }
+                for (int num29 = 0; num29 < 64; num29++)
+                {
+                    ulong num30 = (ulong)(1L << num29);
+                    if ((num28 & num30) == 0)
+                    {
+                        continue;
+                    }
+                    ushort num31 = (ushort)((num27 << 6) | num29);
+                    if (!__instance.m_parkedVehicles.m_buffer[num31].RenderInstance(cameraInfo, num31))
+                    {
+                        num28 &= ~num30;
+                    }
+                    ushort nextGridParked = __instance.m_parkedVehicles.m_buffer[num31].m_nextGridParked;
+                    int num32 = 0;
+                    while (nextGridParked != 0)
+                    {
+                        int num33 = nextGridParked >> 6;
+                        num30 = (ulong)(1L << (int)nextGridParked);
+                        if (num33 == num27)
+                        {
+                            if ((num28 & num30) != 0)
+                            {
+                                break;
+                            }
+                            num28 |= num30;
+                        }
+                        else
+                        {
+                            ulong num34 = ___m_renderBuffer2[num33];
+                            if ((num34 & num30) != 0)
+                            {
+                                break;
+                            }
+                            ___m_renderBuffer2[num33] = (num34 | num30);
+                        }
+                        if (nextGridParked > num31)
+                        {
+                            break;
+                        }
+                        nextGridParked = __instance.m_parkedVehicles.m_buffer[nextGridParked].m_nextGridParked;
+                        if (++num32 > 32768)
+                        {
+                            CODebugBase<LogChannel>.Error(LogChannel.Core, "Invalid list detected!\n" + Environment.StackTrace);
+                            break;
+                        }
+                    }
+                }
+                ___m_renderBuffer2[num27] = num28;
+            }
+
+
+            int num35 = PrefabCollection<VehicleInfo>.PrefabCount();
+            for (int num36 = 0; num36 < num35; num36++)
+            {
+                VehicleInfo prefab = PrefabCollection<VehicleInfo>.GetPrefab((uint)num36);
+                if ((object)prefab == null)
+                {
+                    continue;
+                }
+                if (prefab.m_lodCount != 0)
+                {
+                    Vehicle.RenderLod(cameraInfo, prefab);
+                }
+                if (prefab.m_undergroundLodCount != 0)
+                {
+                    Vehicle.RenderUndergroundLod(cameraInfo, prefab);
+                }
+                if (prefab.m_subMeshes == null)
+                {
+                    continue;
+                }
+                for (int num37 = 0; num37 < prefab.m_subMeshes.Length; num37++)
+                {
+                    VehicleInfoBase subInfo = prefab.m_subMeshes[num37].m_subInfo;
+                    if (subInfo != null)
+                    {
+                        if (subInfo.m_lodCount != 0)
+                        {
+                            Vehicle.RenderLod(cameraInfo, subInfo);
+                        }
+                        if (subInfo.m_undergroundLodCount != 0)
+                        {
+                            Vehicle.RenderUndergroundLod(cameraInfo, subInfo);
+                        }
+                    }
+                }
+            }
+        });
     }
 }

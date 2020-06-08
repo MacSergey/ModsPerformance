@@ -11,6 +11,12 @@ namespace ParallelBooster.Patches
 {
     public static class NetSegmentPatch
     {
+        private static Action<object[]> RenderInstanceExtractedMethod { get; } = new Action<object[]>((args) =>
+        {
+            NetSegment __instance = (NetSegment)args[0];
+            RenderInstanceExtracted(ref __instance, (CameraInfo)args[1], (ushort)args[2], (int)args[3], (NetInfo)args[4], (Instance)args[5], (NetManager)args[6]);
+        });
+
         public static List<CodeInstruction> CollapsedIfBlockFind { get; } = new List<CodeInstruction>
             {
                 new CodeInstruction(OpCodes.Ldarg_0),
@@ -51,22 +57,22 @@ namespace ParallelBooster.Patches
                 Logger.Start(nameof(NetSegmentPatch), nameof(AddToDispatcherInstance));
 #endif
 #if UseTask
-            Patcher.Dispatcher.Add(() => RenderInstanceExtracted(ref instance, cameraInfo, segmentID, layerMask, info, data, netManager));
+            Patcher.Dispatcher.Add(RenderInstanceExtractedMethod,instance, cameraInfo, segmentID, layerMask, info, data, netManager);
 #else
                 RenderInstanceExtracted(ref instance, cameraInfo, segmentID, layerMask, info, data, netManager);
 #endif
         }
-        public static void AddToDispatcherLanes(NetSegment instance, CameraInfo cameraInfo, ushort segmentID, int layerMask, NetInfo info, Instance data, NetManager netManager, int propIndex2, uint num2, NetNode.Flags flags3, NetNode.Flags flags4, Color color3, Color color4, float startAngle2, float endAngle2, bool invert2, Vector4 objectIndex, Vector4 objectIndex2)
-        {
-#if Debug && Trace
-                Logger.Start(nameof(NetSegmentPatch), nameof(AddToDispatcherLanes));
-#endif
-#if UseTask
-            Patcher.Dispatcher.Add(() => RenderLinesExtracted(ref instance, cameraInfo, segmentID, layerMask, info, ref data, netManager, propIndex2, num2, flags3, flags4, color3, color4, startAngle2, endAngle2, invert2, objectIndex, objectIndex2));
-#else
-                RenderLinesExtracted(ref instance, cameraInfo, segmentID, layerMask, info, ref data, netManager, propIndex2, num2, flags3, flags4, color3, color4, startAngle2, endAngle2, invert2, objectIndex, objectIndex2);
-#endif
-        }
+        //        public static void AddToDispatcherLanes(NetSegment instance, CameraInfo cameraInfo, ushort segmentID, int layerMask, NetInfo info, Instance data, NetManager netManager, int propIndex2, uint num2, NetNode.Flags flags3, NetNode.Flags flags4, Color color3, Color color4, float startAngle2, float endAngle2, bool invert2, Vector4 objectIndex, Vector4 objectIndex2)
+        //        {
+        //#if Debug && Trace
+        //                Logger.Start(nameof(NetSegmentPatch), nameof(AddToDispatcherLanes));
+        //#endif
+        //#if UseTask
+        //            Patcher.Dispatcher.Add(() => RenderLinesExtracted(ref instance, cameraInfo, segmentID, layerMask, info, ref data, netManager, propIndex2, num2, flags3, flags4, color3, color4, startAngle2, endAngle2, invert2, objectIndex, objectIndex2));
+        //#else
+        //                RenderLinesExtracted(ref instance, cameraInfo, segmentID, layerMask, info, ref data, netManager, propIndex2, num2, flags3, flags4, color3, color4, startAngle2, endAngle2, invert2, objectIndex, objectIndex2);
+        //#endif
+        //        }
 
 #if Debug
         [HarmonyDebug]
@@ -141,7 +147,7 @@ namespace ParallelBooster.Patches
                 Logger.AddDebugInstructions(newInstructions, nameof(NetSegmentPatch), nameof(NetSegmentPatch.RenderInstancePatch));
 #endif
 #if Debug && IL
-                Logger.Debug(nameof(NetSegmentPatch), nameof(NetSegmentPatch.RenderInstancePatch), newInstructions);
+            Logger.Debug(nameof(NetSegmentPatch), nameof(NetSegmentPatch.RenderInstancePatch), newInstructions);
 #endif
             return newInstructions;
         }
@@ -167,7 +173,7 @@ namespace ParallelBooster.Patches
                     Logger.AddDebugInstructions(newInstructions, nameof(NetSegmentPatch), nameof(RenderInstanceExtracted));
 #endif
 #if Debug && IL
-                    Logger.Debug(nameof(NetSegmentPatch), nameof(RenderInstanceExtracted), newInstructions);
+                Logger.Debug(nameof(NetSegmentPatch), nameof(RenderInstanceExtracted), newInstructions);
 #endif
                 return newInstructions;
             }
@@ -243,7 +249,7 @@ namespace ParallelBooster.Patches
                     Logger.AddDebugInstructions(newInstructions, nameof(NetSegmentPatch), nameof(RenderLinesExtracted));
 #endif
 #if Debug && IL
-                    Logger.Debug(nameof(NetSegmentPatch), nameof(RenderLinesExtracted), newInstructions);
+                Logger.Debug(nameof(NetSegmentPatch), nameof(RenderLinesExtracted), newInstructions);
 #endif
                 return newInstructions;
             }

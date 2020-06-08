@@ -12,6 +12,8 @@ namespace ParallelBooster.Patches
 {
     public static class VehiclePatch
     {
+        private static Action<object[]> RenderInstanceMethod { get; } = new Action<object[]>((args) => Vehicle.RenderInstance((RenderManager.CameraInfo)args[0], (VehicleInfo)args[1], (Vector3)args[2], (Quaternion)args[3], (Vector3)args[4], (Vector4)args[5], (Vector4)args[6], (Vector3)args[7], (float)args[8], (Color)args[9], (Flags)args[10], (int)args[11], (InstanceID)args[12], (bool)args[13], (bool)args[14]));
+
         public static void Patch(Harmony harmony)
         {
             var originalMethod = AccessTools.Method(typeof(Vehicle), nameof(Vehicle.RenderInstance), new Type[] { typeof(RenderManager.CameraInfo), typeof(ushort) });
@@ -97,7 +99,7 @@ namespace ParallelBooster.Patches
             InstanceID id = default(InstanceID);
             id.Vehicle = vehicleID;
 #if UseTask
-            Patcher.Dispatcher.Add(() => Vehicle.RenderInstance(cameraInfo, info, position, rotation, swayPosition, lightState, tyrePosition, velocity, acceleration, color, __instance.m_flags, ~(1 << (int)__instance.m_gateIndex), id, flag || flag3, !flag || flag3));
+            Patcher.Dispatcher.Add(RenderInstanceMethod,cameraInfo, info, position, rotation, swayPosition, lightState, tyrePosition, velocity, acceleration, color, __instance.m_flags, ~(1 << (int)__instance.m_gateIndex), id, flag || flag3, !flag || flag3);
 #else
             Vehicle.RenderInstance(cameraInfo, info, position, rotation, swayPosition, lightState, tyrePosition, velocity, acceleration, color, __instance.m_flags, ~(1 << (int)__instance.m_gateIndex), id, flag || flag3, !flag || flag3);
 #endif
