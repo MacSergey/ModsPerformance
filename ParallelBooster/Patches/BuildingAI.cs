@@ -429,7 +429,7 @@ namespace ParallelBooster.Patches
                 Patcher.Dispatcher.Add(action);
 #else
 				__instance.RenderFireEffect(cameraInfo, buildingID, ref data, instance.m_dataVector0.x);
-                RenderFireEffectPropsMethod.Invoke(__instance, new object[] { cameraInfo, buildingID, data, instance, (float)(int)data.m_fireIntensity * 0.003921569f, instance.m_dataVector0.x, true, true });
+                RenderFireEffectPropsReverse(__instance, cameraInfo, buildingID, ref data, ref instance, (float)(int)data.m_fireIntensity * 0.003921569f, instance.m_dataVector0.x, true, true);
 #endif
 
             }
